@@ -1,11 +1,12 @@
 Inductive day : Type :=
-  | monday : day
-  | tuesday : day
-  | wednesday : day
-  | thursday : day
-  | friday : day
-  | saturday : day
-  | sunday : day.
+    | monday : day
+    | tuesday : day
+    | wednesday : day
+    | thursday : day
+    | friday : day
+    | saturday : day
+    | sunday : day.
+
 
 Definition next_weekday (d:day) : day :=
   match d with
@@ -27,29 +28,30 @@ Definition test_next_weekday:
 
 
 Proof.
- simpl. reflexivity.  Qed.
+  simpl.
+  reflexivity.
+Qed.
 
 Inductive bool : Type :=
-  | true : bool
-  | false : bool.
-
+| true : bool
+| false : bool.
 
 Definition negb (b:bool) : bool := 
   match b with
-  | true => false
-  | false => true
+    | true => false
+    | false => true
   end.
 
 Definition andb (b1:bool) (b2:bool) : bool := 
   match b1 with 
-  | true => b2 
-  | false => false
+    | true => b2 
+    | false => false
   end.
 
 Definition orb (b1:bool) (b2:bool) : bool := 
   match b1 with 
-  | true => true
-  | false => b2
+    | true => true
+    | false => b2
   end.
 
 
@@ -65,7 +67,7 @@ Proof. simpl. reflexivity.  Qed.
 
 
 Definition nandb (b1:bool) (b2:bool) : bool :=
-negb (andb b1 b2).
+  negb (andb b1 b2).
 
 
 Example test_nandb1:               (nandb true false) = true.
@@ -85,14 +87,14 @@ simpl. reflexivity.
 Qed.
 
 Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool :=
-match b1 with
-| true => 
-  match b2 with
-    | true => b3
+  match b1 with
+    | true => 
+      match b2 with
+        | true => b3
+        | false => false
+      end
     | false => false
-  end
-| false => false
-end.
+  end.
 
 Example test_andb31:                 (andb3 true true true) = true.
 simpl. reflexivity.
@@ -122,89 +124,89 @@ Check negb.
 
 Module Playground1.
 
-Inductive nat : Type :=
-| O : nat
-| S : nat -> nat.
+  Inductive nat : Type :=
+  | O : nat
+  | S : nat -> nat.
 
 
-Definition pred (n:nat) : nat :=
-match n with
-| O => O
-| S m => m
-end.
+  Definition pred (n:nat) : nat :=
+    match n with
+      | O => O
+      | S m => m
+    end.
 
 End Playground1.
 
 Definition minustwo (n:nat) : nat :=
-match n with
-| O => O
-| S O => O
-| S (S m) => m
-end.
+  match n with
+    | O => O
+    | S O => O
+    | S (S m) => m
+  end.
 
 
 Fixpoint evenb (n:nat) : bool :=
-match n with
-| O => true
-| S O => false
-| S (S m) => evenb m
-end.
+  match n with
+    | O => true
+    | S O => false
+    | S (S m) => evenb m
+  end.
 
 Definition oddb (n:nat) : bool :=
-negb (evenb n).
+  negb (evenb n).
 
 Example test_oddb1:    (oddb (S O)) = true.
 Proof.
-reflexivity.
+  reflexivity.
 Qed.
 
 Module Playground2.
 
-Fixpoint plus (n:nat) (m:nat) : nat :=
-match n with
-| O => m
-| S n' => S (plus n' m)
-end.
+  Fixpoint plus (n:nat) (m:nat) : nat :=
+    match n with
+      | O => m
+      | S n' => S (plus n' m)
+    end.
 
 
-Fixpoint mult (n:nat) (m:nat) : nat :=
-match n with
-| O => O
-| S n' => plus m (mult n' m)
-end.
+  Fixpoint mult (n:nat) (m:nat) : nat :=
+    match n with
+      | O => O
+      | S n' => plus m (mult n' m)
+    end.
 
-Fixpoint minus (n:nat) (m:nat) : nat :=
-match n, m with
-| _, O =>  n
-| O, _ => O
-| S n', S m' => minus n' m'
-end.
+  Fixpoint minus (n:nat) (m:nat) : nat :=
+    match n, m with
+      | _, O =>  n
+      | O, _ => O
+      | S n', S m' => minus n' m'
+    end.
 
-Eval compute in minus 8 1.
+  Eval compute in minus 8 1.
 
 End Playground2.
 
 Fixpoint exp (base power : nat) : nat :=
-match power with
-| O => 1
-| S power' => mult (exp base power') base
-end.
+  match power with
+    | O => 1
+    | S power' => mult (exp base power') base
+  end.
 
 Fixpoint beq_nat n m :=
-match n, m  with
-| O, O => true
-| O, _ => false
-| S n', O => false
-| S n', S m' => beq_nat n' m'
-end.
+  match n, m  with
+    | O, O => true
+    | O, _ => false
+    | S n', O => false
+    | S n', S m' => beq_nat n' m'
+  end.
 
  
 Fixpoint ble_nat n m  :=
-match n, m  with
-| O, _ => true
-| S n', O => false
-| S n', S m' => ble_nat n' m'
-end.
+  match n, m  with
+    | O, _ => true
+    | S n', O => false
+    | S n', S m' => ble_nat n' m'
+  end.
 
 Example test_ble_nat1:             (ble_nat 2 2) = true.
 Proof. simpl. reflexivity.  Qed.
@@ -215,40 +217,39 @@ Proof. simpl. reflexivity.  Qed.
 
 
 Definition blt_nat (n m : nat) : bool :=
-ble_nat (S n) m.
+  ble_nat (S n) m.
 
 Theorem plus_O_n : forall n:nat, 0 + n = n.
 Proof.
-simpl.
-reflexivity.
+  simpl.
+  reflexivity.
 Qed.
 
 Theorem orb_true_b : forall b:bool, orb true b = true.
-intro b.
-reflexivity.
+  intro b.
+  reflexivity.
 Qed.
 
 Theorem plus_O_n'' : forall n:nat, 0 + n = n.
 Proof.
-intros n.
-reflexivity.
+  intros n.
+  reflexivity.
 Qed.
 
 Theorem plus_1_l : forall n:nat, 1 + n = S n.
-intros n.
-reflexivity.
+  intros n.
+  reflexivity.
 Qed.
 
 Theorem mult_0_l : forall n:nat, 0 * n = 0.
 Proof.
-reflexivity.
+  reflexivity.
 Qed.
 
 Theorem plus_id_example : forall n m:nat,
   n = m -> n + n = m + m.
 Proof.
-intros n m H.
-rewrite  <- H.
-trivial.
+  intros n m H.
+  rewrite  <- H.
+  trivial.
 Qed.
-
