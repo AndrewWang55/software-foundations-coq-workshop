@@ -1,3 +1,5 @@
+(* ix:2DW *)
+
 Inductive day : Type :=
     | monday : day
     | tuesday : day
@@ -36,26 +38,26 @@ Inductive bool : Type :=
 | true : bool
 | false : bool.
 
-Definition negb (b:bool) : bool := 
+Definition negb (b:bool) : bool :=
   match b with
     | true => false
     | false => true
   end.
 
-Definition andb (b1:bool) (b2:bool) : bool := 
-  match b1 with 
-    | true => b2 
+Definition andb (b1:bool) (b2:bool) : bool :=
+  match b1 with
+    | true => b2
     | false => false
   end.
 
-Definition orb (b1:bool) (b2:bool) : bool := 
-  match b1 with 
+Definition orb (b1:bool) (b2:bool) : bool :=
+  match b1 with
     | true => true
     | false => b2
   end.
 
 
-Example test_orb1:  (orb true  false) = true. 
+Example test_orb1:  (orb true  false) = true.
 Proof. simpl. reflexivity.  Qed.
 Example test_orb2:  (orb false false) = false.
 Proof. simpl. reflexivity.  Qed.
@@ -88,7 +90,7 @@ Qed.
 
 Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool :=
   match b1 with
-    | true => 
+    | true =>
       match b2 with
         | true => b3
         | false => false
@@ -175,6 +177,7 @@ Module Playground2.
       | S n' => plus m (mult n' m)
     end.
 
+
   Fixpoint minus (n:nat) (m:nat) : nat :=
     match n, m with
       | _, O =>  n
@@ -200,7 +203,7 @@ Fixpoint beq_nat n m :=
     | S n', S m' => beq_nat n' m'
   end.
 
- 
+
 Fixpoint ble_nat n m  :=
   match n, m  with
     | O, _ => true
@@ -243,13 +246,71 @@ Qed.
 
 Theorem mult_0_l : forall n:nat, 0 * n = 0.
 Proof.
+  intro n.
+  simpl.
   reflexivity.
 Qed.
 
 Theorem plus_id_example : forall n m:nat,
   n = m -> n + n = m + m.
+
 Proof.
   intros n m H.
-  rewrite  <- H.
+  rewrite <- H.
+  reflexivity.
+Qed.
+
+Theorem plus_id_exercise : forall n m o : nat,
+  n = m -> m = o -> n + m = m + o.
+Proof.
+  intros n m o.
+  intro H1.
+  intro H2.
+  rewrite -> H1.
+  rewrite <- H2.
+  reflexivity.
+Qed.
+
+Theorem mult_0_plus : forall n m : nat,
+  (0 + n) * m = n * m.
+Proof.
+   intros n m.
+   rewrite plus_O_n.
+   reflexivity.
+Qed.
+
+Theorem mult_1_plus : forall n m : nat,
+  (1 + n) * m = m + (n * m).
+Proof.
+  intros.
+  rewrite -> plus_1_l.
+  simpl.
   trivial.
+Qed.
+
+Theorem plus_1_neq_0 : forall n : nat,
+  beq_nat (n + 1) 0 = false.
+  Proof.
+    intros.
+    destruct n.
+    (* case n = 0 *) reflexivity.
+    (* case n = S n' *) reflexivity.
+  Qed.
+
+
+Theorem negb_involutive : forall b : bool,
+  negb (negb b) = b.
+  Proof.
+    destruct b.
+    reflexivity.
+    reflexivity.
+  Qed.
+
+
+Theorem zero_nbeq_plus_1 : forall n : nat,
+  beq_nat 0 (n + 1) = false.
+Proof.
+  destruct n.
+  reflexivity.
+  reflexivity.
 Qed.
