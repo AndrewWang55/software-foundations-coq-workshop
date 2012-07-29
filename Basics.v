@@ -292,7 +292,7 @@ Theorem plus_1_neq_0 : forall n : nat,
   beq_nat (n + 1) 0 = false.
   Proof.
     intros.
-    destruct n.
+    destruct n as [| n'].
     (* case n = 0 *) reflexivity.
     (* case n = S n' *) reflexivity.
   Qed.
@@ -313,4 +313,74 @@ Proof.
   destruct n.
   reflexivity.
   reflexivity.
+Qed.    
+
+Theorem plus_0_r : forall n:nat, n + 0 = n.
+Proof.
+  intro n.
+  induction n.
+  reflexivity.
+  simpl.
+  rewrite -> IHn.
+  trivial.
 Qed.
+
+Theorem minus_diag : forall n,
+  minus n n = 0.
+  Proof.
+    intro n.
+    induction n.
+    reflexivity.
+    simpl.
+    assumption.
+  Qed.
+ 
+Theorem mult_0_r : forall n:nat,
+  n * 0 = 0.
+  Proof.
+    intro n.
+    induction n.
+    reflexivity.
+    simpl.
+    assumption.
+  Qed.
+  
+Theorem plus_n_Sm : forall n m : nat, 
+  S (n + m) = n + (S m).
+  Proof.
+    intros n m.
+    Print plus.
+    induction n.
+    simpl.
+    reflexivity.
+    simpl.
+    rewrite -> IHn.
+    reflexivity.
+  Qed.
+  
+Fixpoint double (n:nat) :=
+  match n with
+    | O => O
+    | S n' => S (S (double n'))
+  end.
+
+(*
+double (S (S (S O)))
+=> S (S (double (S (S O))))
+=> S (S (S (S (double (S O)))))
+=> S (S (S (S (S (S (double O))))))
+=> S (S (S (S (S (S (O))))))
+*)
+
+Lemma double_plus : forall n, double n = n + n.
+  Proof.
+    intro n.
+    induction n.
+    simpl.
+    reflexivity.
+    simpl.
+    rewrite -> IHn.
+    SearchRewrite (_ + S _).
+    rewrite -> plus_n_Sm.
+    reflexivity.
+  Qed.
