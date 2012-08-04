@@ -553,6 +553,7 @@ Theorem plus_ble_compat_l : forall n m p : nat,
   ble_nat n m = true -> ble_nat (p + n) (p + m) = true.
 Proof.
   intros n m p.
+  intro H.
   induction p.
   simpl.
   exact H.
@@ -623,4 +624,4 @@ Proof.
   reflexivity.
   rewrite plus_comm.
   reflexivity.
-  Qed.
+Qed.
