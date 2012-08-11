@@ -625,3 +625,141 @@ Proof.
   rewrite plus_comm.
   reflexivity.
 Qed.
+
+Module binnats.
+
+  Inductive bin : Set :=
+  | O : bin
+  | D : bin -> bin
+  | P : bin -> bin.
+
+  Fixpoint bininc (b:bin) : bin :=
+    match b with
+      | O => P O
+      | D b' => P b'
+      | P b' => D (bininc b')
+    end.
+
+  Fixpoint bin2nat (b:bin) : nat :=
+    match b with
+      | O => 0
+      | D b' => double (bin2nat b')
+      | P b' => S (double (bin2nat b'))
+    end.
+
+  Theorem bin2nat_bininc_comm : forall b:bin,
+    bin2nat (bininc b) = S (bin2nat b).
+    Proof.
+      intros b.
+      induction b.
+      reflexivity.
+      reflexivity.
+      simpl.
+      rewrite IHb.
+      reflexivity.
+    Qed.
+
+    Fixpoint nat2bin (n:nat) : bin :=
+      match n with
+        | 0 => O
+        | S n' => bininc (nat2bin n')
+      end.
+
+    Theorem nat2bin2nat_id : forall n:nat,
+      bin2nat (nat2bin n) = n.
+      intros n.
+      induction n.
+      reflexivity.
+      simpl.
+      rewrite bin2nat_bininc_comm.
+      rewrite IHn.
+      reflexivity.
+    Qed.
+
+    Eval simpl in (nat2bin (bin2nat O)).
+    Eval simpl in (nat2bin (bin2nat (D (D (D O))))).
+
+    Fixpoint normalize (b:bin) : bin :=
+      match b with
+        | O => O
+        | D b' => match normalize b' with
+                    | O => O
+                    | nb => D nb
+                  end
+        | P b' => P (normalize b')
+      end.
+
+Definition imp_id_proof := fun (p:Prop) => (fun (d:p) => d).
+
+Check imp_id_proof (3=3).
+Check imp_id_proof (3=3) (refl_equal 3).
+
+Theorem imp_id : forall P:Prop, P -> P.
+  intro p.
+  intro d.
+  exact d.
+Qed.
+
+Print imp_id.
+
+Eval simpl in bininc (normalize (D (P (D O)))) = (normalize (P (P (D O)))).
+
+(*
+Theorems and definitions below taken from
+http://staff.ustc.edu.cn/~bjhua/courses/theory/2012/slides/lec1notes.html
+*)
+
+Definition bindouble (b:bin) : bin :=
+  match b with
+    | O => O
+    | D n' => D (D n')
+    | P n' => D (P n')
+  end.
+
+Lemma bininc_twice : forall b:bin,
+  bininc (bininc (bindouble b)) = bindouble (bininc b).
+  Proof.
+    destruct b.
+    reflexivity.
+    reflexivity.
+    reflexivity.
+  Qed.
+
+Lemma double_bindouble : forall n:nat,
+  nat2bin (double n) = (bindouble (nat2bin n)).
+  Proof.
+    intro n.
+    induction n.
+    reflexivity.
+    simpl.
+    rewrite IHn.
+    rewrite bininc_twice.
+    reflexivity.
+  Qed.
+
+Lemma bininc_bindouble: forall b:bin,
+  bininc (bindouble b) = P b.
+  intro b.
+  destruct b.
+  reflexivity.
+  reflexivity.
+  reflexivity.
+Qed.
+
+Theorem bin2nat2bin_n_eq_norm_n : forall b:bin,
+  nat2bin (bin2nat b) = normalize b.
+  Proof.
+    intro b.
+    induction b.
+    reflexivity.
+    simpl.
+    rewrite double_bindouble.
+    rewrite IHb.
+    unfold bindouble.
+    reflexivity.
+    simpl.
+    rewrite double_bindouble.
+    rewrite IHb.
+    rewrite bininc_bindouble.
+    reflexivity.
+  Qed.
