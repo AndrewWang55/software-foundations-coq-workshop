@@ -763,3 +763,5 @@ Theorem bin2nat2bin_n_eq_norm_n : forall b:bin,
     rewrite bininc_bindouble.
     reflexivity.
   Qed.
+  
+End binnats.
