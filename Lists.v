@@ -165,21 +165,34 @@ Proof.
 Qed.
 
 (* HOMEWORK *)
-(*
-   
+(* Dragan's solution *)   
+
 Fixpoint alternate (l1 l2 : natlist) : natlist :=
-  (* FILL IN HERE *) admit.
+  match l2 with
+    | [] => l1
+    | h2::t2 => match l1 with
+                  | [] => l2
+                  | h1 :: t1 => h1 :: h2 :: (alternate t1 t2)
+                end
+  end.
+
 
 Example test_alternate1: alternate [1,2,3] [4,5,6] = [1,4,2,5,3,6].
- (* FILL IN HERE *) Admitted.
+Proof.
+  reflexivity.
+Qed.
 Example test_alternate2: alternate [1] [4,5,6] = [1,4,5,6].
- (* FILL IN HERE *) Admitted.
+Proof.
+  reflexivity.
+Qed.
 Example test_alternate3: alternate [1,2,3] [4] = [1,4,2,3].
- (* FILL IN HERE *) Admitted.
+Proof.
+  reflexivity.
+Qed.
 Example test_alternate4: alternate [] [20,30] = [20,30].
- (* FILL IN HERE *) Admitted.
-
-*)
+Proof.
+  reflexivity.
+Qed.
 
 Definition bag := natlist.
 
@@ -298,4 +311,227 @@ count and add, and prove it. Note that, since this problem is somewhat
 open-ended, it's possible that you may come up with a theorem which is
 true, but whose proof requires techniques you haven't learned
 yet. Feel free to ask for help if you get stuck!
+*)
+
+(* Dragan's solution *)
+
+Theorem p_n_count_add : forall (p : nat) (s:bag),
+  S (count p s) = count p (add p s).
+  Proof.
+    intros p s.
+    simpl.
+    rewrite <- beq_nat_refl.
+    reflexivity.
+Qed.
+
+(* bojan's solution *)
+
+Theorem homework3: forall (n m:nat) (b:bag),
+  (beq_nat n m) = false -> beq_nat (count n b) (count n (add m b)) = true.
+Proof.
+  destruct b as [| n' b'].
+  intro.
+  simpl.
+  rewrite H.
+  reflexivity.
+  intro.
+  simpl.
+  rewrite H.
+  rewrite <- beq_nat_refl.
+  reflexivity.
+Qed.
+
+Theorem nil_app : forall l:natlist,
+  [] ++ l = l.
+Proof.
+  reflexivity.
+Qed.
+
+Theorem tl_length_pred : forall l:natlist,
+  pred (length l) = length (tl l).
+  Proof.
+    destruct l as [| n l'].
+    reflexivity.
+    reflexivity.
+  Qed.
+
+Theorem app_ass : forall l1 l2 l3 : natlist,
+  (l1 ++ l2) ++ l3 = l1 ++ (l2 ++ l3).
+Proof.
+  intros l1 l2 l3.
+  induction l1 as [| n l1'].
+  reflexivity.
+  simpl.
+  rewrite -> IHl1'.
+  reflexivity.
+Qed.
+
+Theorem app_length : forall l1 l2 : natlist,
+  length (l1 ++ l2) = (length l1) + (length l2).
+  Proof.
+    intros l1 l2.
+    induction l1 as [|n l'].
+    reflexivity.
+    simpl.
+    rewrite -> IHl'.
+    reflexivity.
+  Qed.
+
+Fixpoint snoc (l:natlist) (v:nat) : natlist :=
+  match l with
+    | [] => [v]
+    | h :: t => h :: (snoc t v)
+  end.
+
+Fixpoint rev (l:natlist) : natlist :=
+  match l with
+    | [] => []
+    | h :: t => (snoc (rev t) h)
+  end.
+
+Lemma length_snoc: forall (l:natlist) (n:nat),
+  length (snoc l n) = S (length l).
+Proof.
+  intros l n.
+  induction l as [| n' l' ].
+  reflexivity.
+  simpl.
+  rewrite -> IHl'.
+  reflexivity.
+Qed.
+
+Theorem rev_length : forall l : natlist,
+  length (rev l) = length l.
+Proof.
+  intro l.
+  induction l as [| n l'].
+  reflexivity.
+  simpl.
+  rewrite -> length_snoc.
+  rewrite -> IHl'.
+  reflexivity.
+Qed.
+
+Theorem app_nil_end : forall l : natlist,
+  l ++ [] = l.
+Proof.
+  intro l.
+  induction l as [|n l'].
+  reflexivity.
+  simpl.
+  rewrite -> IHl'.
+  reflexivity.
+Qed.
+
+Theorem rev_snoc : forall (n:nat) (l:natlist),
+  rev (snoc l n)   = n :: (rev l).
+Proof.
+  intros n l.
+  induction l as [| n' l'].
+  reflexivity.
+  simpl.
+  rewrite -> IHl'.
+  reflexivity.
+Qed.
+
+Theorem rev_involutive : forall l : natlist,
+  rev (rev l) = l.
+  Proof.
+    intro l.
+    induction l as [| n l'].
+    reflexivity.
+    simpl.
+    rewrite -> rev_snoc.
+    rewrite IHl'.
+    reflexivity.
+  Qed.
+
+
+(* Homework *)
+
+Theorem distr_rev : forall l1 l2 : natlist,
+  rev (l1 ++ l2) = (rev l2) ++ (rev l1).
+  Proof. Admitted.
+
+
+Theorem app_ass4 : forall l1 l2 l3 l4 : natlist,
+  l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
+  Proof.
+    intros l1 l2 l3 l4.
+    rewrite <- app_ass.
+    rewrite <- app_ass.
+    reflexivity.
+  Qed.
+
+Theorem snoc_append : forall (l:natlist) (n:nat),
+  snoc l n = l ++ [n].
+Proof.
+  intros l n.
+  induction l.
+  reflexivity.
+  simpl.
+  rewrite IHl.
+  reflexivity.
+Qed.
+
+Lemma nonzeros_length : forall l1 l2 : natlist,
+  nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
+Proof.
+  intros l1 l2.
+  induction l1 as [| n l1'].
+  reflexivity.
+  destruct n as [| n'].
+  simpl.
+  rewrite -> IHl1'.
+  reflexivity.
+  simpl.
+  rewrite -> IHl1'.
+  reflexivity.
+Qed.
+
+Theorem count_member_nonzero : forall (s : bag),
+  ble_nat 1 (count 1 (1 :: s)) = true.
+Proof.
+  intro s.
+  reflexivity.
+Qed.
+
+Theorem ble_n_Sn : forall n,
+  ble_nat n (S n) = true.
+Proof.
+  intro n.
+  induction n as [| n'].
+  reflexivity.
+  simpl.
+  rewrite IHn'.
+  reflexivity.
+Qed.
+
+Theorem remove_decreases_count: forall (s : bag),
+  ble_nat (count 0 (remove_one 0 s)) (count 0 s) = true.
+Proof.
+  intros s.
+  induction s as [| n s' ].
+  reflexivity.
+  destruct n.
+  simpl.
+  rewrite ble_n_Sn.
+  reflexivity.
+  simpl.
+  rewrite IHs'.
+  reflexivity.
+Qed.
+
+(* Homework *)
+(** Write down an interesting theorem about bags involving the
+    functions [count] and [sum], and prove it.
+    *)
+
+
+(* homework *)
+(** Prove that the [rev] function is injective, that is,
+
+[[
+    forall (l1 l2 : natlist), rev l1 = rev l2 -> l1 = l2.
+]]
 *)
