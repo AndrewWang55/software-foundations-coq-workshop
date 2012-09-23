@@ -54,6 +54,7 @@ Inductive natlist : Type :=
 | nil : natlist
 | cons : nat -> natlist -> natlist.
 
+
 Notation "x :: l" := (cons x l) (at level 60, right associativity).
 Notation "[ ]" := nil.
 Notation "[ x , .. , y ]" := (cons x .. (cons y nil) ..).
@@ -225,8 +226,11 @@ Definition add (v:nat) (b:bag) := cons v b.
 
 Example test_add1: count 1 (add 1 [1,4,1]) = 3.
 reflexivity.
+Qed.
+
 Example test_add2: count 5 (add 1 [1,4,1]) = 0.
 reflexivity.
+Qed.
 
 Definition member (v:nat) (s:bag) : bool :=
   negb (beq_nat (count v s) O).
@@ -448,21 +452,31 @@ Theorem rev_involutive : forall l : natlist,
 
 
 (* Homework *)
+Lemma snoc_app: forall (l1 l2:natlist) (n:nat),
+ snoc (l1 ++ l2) n = l1 ++ snoc l2 n.
+Proof.
+  intros l1 l2 n.
+  induction l1.
+  reflexivity.
+  simpl.
+  rewrite IHl1.
+  reflexivity.
+Qed.
 
 Theorem distr_rev : forall l1 l2 : natlist,
   rev (l1 ++ l2) = (rev l2) ++ (rev l1).
-  Proof. Admitted.
-
-
-Theorem app_ass4 : forall l1 l2 l3 l4 : natlist,
-  l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
-  Proof.
-    intros l1 l2 l3 l4.
-    rewrite <- app_ass.
-    rewrite <- app_ass.
-    reflexivity.
-  Qed.
-
+Proof.
+  intros l1 l2.
+  induction l1 as [| n l1'].
+  simpl.
+  rewrite -> app_nil_end.
+  reflexivity.
+  simpl.
+  rewrite -> IHl1'.
+  rewrite -> snoc_app.
+  reflexivity.
+Qed.
+  
 Theorem snoc_append : forall (l:natlist) (n:nat),
   snoc l n = l ++ [n].
 Proof.
@@ -473,6 +487,16 @@ Proof.
   rewrite IHl.
   reflexivity.
 Qed.
+
+Theorem app_ass4 : forall l1 l2 l3 l4 : natlist,
+  l1 ++ (l2 ++ (l3 ++ l4)) = ((l1 ++ l2) ++ l3) ++ l4.
+  Proof.
+    intros l1 l2 l3 l4.
+    rewrite <- app_ass.
+    rewrite <- app_ass.
+    reflexivity.
+  Qed.
+
 
 Lemma nonzeros_length : forall l1 l2 : natlist,
   nonzeros (l1 ++ l2) = (nonzeros l1) ++ (nonzeros l2).
@@ -522,11 +546,47 @@ Proof.
   reflexivity.
 Qed.
 
+
+
 (* Homework *)
 (** Write down an interesting theorem about bags involving the
     functions [count] and [sum], and prove it.
     *)
 
+Lemma count_sum_distr: forall (s1 s2:bag) (n:nat),
+  count n (sum s1 s2) = count n s1 + count n s2.
+Proof.
+  intros s1 s2 n.
+  induction s1.
+  reflexivity.
+  simpl.
+  destruct (beq_nat n n0).
+  simpl.
+  rewrite IHs1.
+  reflexivity.
+  rewrite IHs1.
+  reflexivity.
+Qed.
+
+Theorem ble_nat_plus: forall (n1 n2:nat),
+  ble_nat n1 (n1 + n2) = true.
+  Proof.
+  intros n1 n2.
+  induction n1 as [|n1'].
+  reflexivity.
+  simpl.
+  exact IHn1'.
+Qed.
+
+Theorem sum_increases_count: forall (s1 s2:bag) (n:nat),
+  ble_nat (count n s1) (count n (sum s1 s2)) = true.
+Proof.
+  intros s1 s2 n.
+  rewrite count_sum_distr.
+  rewrite ble_nat_plus.
+  reflexivity.
+Qed.  
+  
 
 (* homework *)
 (** Prove that the [rev] function is injective, that is,
@@ -535,3 +595,79 @@ Qed.
     forall (l1 l2 : natlist), rev l1 = rev l2 -> l1 = l2.
 ]]
 *)
+
+Theorem rev_injective: forall (l1 l2 : natlist),
+  rev l1 = rev l2 -> l1 = l2.
+Proof.
+  intros l1 l2 H.
+  rewrite <- rev_involutive. 
+  rewrite <- H.
+  rewrite  rev_involutive.
+  reflexivity.
+Qed.
+
+Inductive natoption : Type :=
+| None : natoption
+| Some : nat -> natoption.
+
+Fixpoint index_bad (n:nat) (l:natlist) : nat :=
+  match l with
+  | nil => 42  (* arbitrary! *)
+  | a :: l' => match beq_nat n O with 
+               | true => a 
+               | false => index_bad (pred n) l' 
+               end
+  end.
+
+
+
+Fixpoint index (n:nat) (l:natlist) : natoption :=
+  match l with
+  | nil => None
+  | a :: l' => match beq_nat n O with 
+               | true => Some a 
+               | false => index (pred n) l' 
+               end
+  end.
+
+Definition foo (l:natlist) : bool :=
+  match index 5 l with
+    | Some 3 => true
+    | _ => false
+  end.
+
+Fixpoint index' (n:nat) (l:natlist) : natoption :=
+  match l with
+  | nil => None 
+  | a :: l' => if beq_nat n O then Some a else index (pred n) l'
+  end.
+
+Definition option_elim (d : nat) (o : natoption) : nat :=
+  match o with
+  | Some n' => n'
+  | None => d
+  end.
+
+Definition hd_opt (l : natlist) : natoption :=
+  match l with 
+    | [] => None
+    | h :: t => Some h
+  end.
+
+Theorem option_elim_hd : forall (l:natlist) (default:nat),
+  hd default l = option_elim default (hd_opt l).
+Proof.
+  intros l default.
+  destruct l.
+  reflexivity.
+  reflexivity.
+Qed.
+
+Fixpoint beq_natlist (l1 l2 : natlist) : bool :=
+  match l1, l2 with
+    | [], [] => true
+    | h1 :: t1, h2 :: t2 => if beq_nat h1 h2 then beq_natlist t1 t2 else false
+    | _, _ => false
+  end.
+
+End NatList.
