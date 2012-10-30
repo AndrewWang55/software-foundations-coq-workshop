@@ -214,4 +214,156 @@ Definition hd_opt {X : Type} (l : list X)  : option X :=
     | [] => None
     | h :: t => Some h
   end.
-  
+
+
+Definition doit3times  {X:Type} (f : X -> X) (v : X) : X :=
+  f (f (f v)).
+
+(* doit3times :    forall X:Type, (X -> X) ->  X -> X  *)
+
+Check plus.
+
+
+Definition prod_curry {X Y Z:Type} (f : (X * Y) -> Z) (x:X) (y:Y) :=
+  f (x,y).
+
+Definition plus_pair (p:nat * nat) :=
+  (fst p) + (snd p).
+
+Check prod_curry plus_pair.
+
+Definition prod_uncurry {X Y Z : Type } (f : X -> Y -> Z) (p: X * Y) : Z :=
+  f (fst p) (snd p).
+
+(* function identity *)
+Definition plus'' x y := x + y.
+Definition plus' z w := (fun o:nat => z + w) O.
+Theorem identity_by_reduction : plus' = plus''.
+  reflexivity.
+
+Theorem uncurry_curry : forall (X Y Z : Type) (f : X -> Y -> Z) (x:X) (y:Y),
+  prod_curry (prod_uncurry f) x y  = f x y.
+  Proof.
+    reflexivity.
+  Qed.
+
+
+Theorem curry_uncurry : forall (X Y Z : Type) 
+                               (f : (X * Y) -> Z) (p : X * Y),
+  prod_uncurry (prod_curry f) p = f p.
+  Proof.
+    intros.
+    destruct p as [x y].
+    reflexivity.
+  Qed.
+
+Fixpoint filter  {X : Type} (test : X -> bool) (l : list X) : list X :=
+  match l with
+    | [] => []
+    | h :: t => if test h then h :: (filter test t) else (filter test t)
+  end.
+
+Example test_filter1: filter evenb [1,2,3,4] = [2,4].
+Proof.
+  reflexivity.
+Qed.
+
+Definition length_is_1 {X : Type} (l : list X) : bool :=
+  beq_nat (length l) 1.
+
+Example test_filter2: 
+    filter length_is_1
+           [ [1, 2], [3], [4], [5,6,7], [], [8] ]
+  = [ [3], [4], [8] ].
+Proof.
+  reflexivity.
+Qed.
+
+Example test_anon_fun': 
+  doit3times (fun n => n * n) 2 = 256.
+Proof. reflexivity.  Qed.
+
+Definition gt7 x := negb (ble_nat x 7).
+
+Definition filter_even_gt7 (l:list nat):=
+  filter (fun x => (andb (evenb x) (negb (ble_nat x 7)))) l.
+
+Example test_filter_even_gt7_1 :
+  filter_even_gt7 [1,2,6,9,10,3,12,8] = [10,12,8].
+Proof.
+  reflexivity.
+Qed.
+
+Fixpoint partition  {X:Type} (test : X -> bool) (l : list X) : (list X) * (list X) :=
+  match l with
+    | [] => ([], [])
+    | h :: t => let (ok,notok) := (partition test t) in
+      if test h
+        then (h :: ok, notok)
+        else (ok, h :: notok)
+  end.
+
+Definition partition'  {X:Type} (test : X -> bool) (l : list X) : (list X) * (list X) :=
+  (filter test l, filter (fun x => negb (test x)) l).
+
+(* TODO : proove that partition' l and partition l are equal *)
+
+Example test_partition1: partition oddb [1,2,3,4,5] = ([1,3,5], [2,4]).
+Proof.
+  reflexivity.
+Qed.
+
+Fixpoint map {X Y : Type} (f : X -> Y) (l : list X) :=
+  match l with
+    | []  => []
+    | h :: t => (f h) :: (map f t)
+  end.
+
+Example test_map1: map (plus 3) [2,0,2] = [5,3,5].
+Proof. reflexivity.  Qed.
+
+Lemma map_snoc : forall (X Y:Type) (l : list X) (f : X -> Y) (v : X),
+  map f (snoc l v) = (snoc (map f l) (f v)).
+  intros X Y l f v.
+  induction l.
+  reflexivity.
+  simpl.
+  rewrite IHl.
+  reflexivity.
+Qed.
+
+Theorem map_rev : forall (X Y : Type) (f : X -> Y) (l : list X),
+  map f (rev l) = rev (map f l).
+Proof.
+  intros X Y f l.
+  induction l.
+  reflexivity.
+  simpl.
+  rewrite <- IHl.
+  rewrite-> map_snoc.
+  rewrite IHl.
+  reflexivity.
+Qed.
+
+Fixpoint flat_map {X Y:Type} (f:X -> list Y) (l:list X) : (list Y) := 
+  match l with
+    | [] => []
+    | h :: t =>  (f h) ++ (flat_map f t)
+  end.
+
+Example test_flat_map1: 
+  flat_map (fun n => [n,n,n]) [1,5,4]
+  = [1, 1, 1, 5, 5, 5, 4, 4, 4].
+Proof.
+  reflexivity.
+Qed.
+
+Fixpoint fold {X Y:Type} (f : X -> Y -> Y) (l : list X)  (i : Y) : Y :=
+  match l with
+    | [] => i
+    | h :: t => f h (fold f t i)
+  end.
+
+Eval compute in fold andb [true, false, true] true.
+
+Eval compute in fold (fun l c => (length l) + c)  [[1],[],[2,3],[4]] 0.
