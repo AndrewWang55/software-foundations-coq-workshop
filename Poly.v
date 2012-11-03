@@ -123,6 +123,29 @@ Theorem rev_snoc : forall X : Type,
   reflexivity.
 Qed.
 
+Theorem rev_involutive : forall (X : Type) (l : list X),
+  rev (rev l) = l.
+Proof.
+  intros X l.
+  induction l.
+  reflexivity.
+  simpl.
+  rewrite rev_snoc.
+  rewrite IHl.
+  reflexivity.
+Qed.
+
+Theorem rev_injective: forall (X:Type) (l1 l2 : list X),
+  rev l1 = rev l2 -> l1 = l2.
+Proof.
+  intros X l1 l2 H.
+  rewrite <- rev_involutive.
+  rewrite <- H.
+  rewrite rev_involutive.
+  reflexivity.
+Qed.
+
+
 Theorem snoc_with_append : forall X : Type, 
                          forall l1 l2 : list X,
                          forall v : X,
@@ -234,6 +257,8 @@ Check prod_curry plus_pair.
 
 Definition prod_uncurry {X Y Z : Type } (f : X -> Y -> Z) (p: X * Y) : Z :=
   f (fst p) (snd p).
+
+Definition plus3 := plus 3.
 
 (* function identity *)
 Definition plus'' x y := x + y.
