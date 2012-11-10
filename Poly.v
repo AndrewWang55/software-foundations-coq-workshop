@@ -392,3 +392,142 @@ Fixpoint fold {X Y:Type} (f : X -> Y -> Y) (l : list X)  (i : Y) : Y :=
 Eval compute in fold andb [true, false, true] true.
 
 Eval compute in fold (fun l c => (length l) + c)  [[1],[],[2,3],[4]] 0.
+
+Definition constfun  {X:Type}  (v:X) : nat -> X :=
+  fun _ => v.
+
+Definition ftrue := constfun true.
+
+Example constfun_example1 : ftrue 0 = true.
+Proof. reflexivity. Qed.
+
+Example constfun_example2 : (constfun 5) 99 = 5.
+Proof. reflexivity. Qed.
+
+Definition override {X:Type} (f: nat -> X)  (v:nat) (x:X) : nat -> X :=
+  fun n => if beq_nat v n then x else f n.
+
+Definition fmostlytrue := override (override ftrue 1 false) 3 false.
+
+Example override_example1 : fmostlytrue 0 = true.
+Proof. reflexivity. Qed.
+
+Example override_example2 : fmostlytrue 1 = false.
+Proof. reflexivity. Qed.
+
+Example override_example3 : fmostlytrue 2 = true.
+Proof. reflexivity. Qed.
+
+Example override_example4 : fmostlytrue 3 = false.
+Proof. reflexivity. Qed.
+
+
+Theorem silly1 : forall (n m o p : nat),
+     n = m ->
+     [n,o] = [n,p] ->
+     [n,o] = [m,p].
+Proof.
+  intros n m o p.
+  intros H1 H2.
+  rewrite <- H1.
+  apply H2. 
+Qed.
+
+
+Theorem silly2 : forall (n m o p : nat),
+     n = m ->
+     (forall (q r : nat), q = r -> [q,o] = [r,p]) ->
+     [n,o] = [m,p].
+Proof.
+  intros n m o p H1 H2.
+  Show Proof.
+  apply H2.
+  Show Proof.
+  apply H1.
+Show Proof.
+Qed.
+
+Theorem silly2a : forall (n m : nat),
+     (n,n) = (m,m) ->
+     (forall (q r : nat), (q,q) = (r,r) -> [q] = [r]) ->
+     [n] = [m].
+Proof.
+  intros n m eq1 eq2.
+  apply eq2. apply eq1. Qed.
+
+
+Theorem silly_ex :
+     (forall n,  evenb n = true -> oddb (S n) = true) ->
+     evenb 3 = true ->
+     oddb 4 = true.
+Proof.
+  intros H eq1.
+  apply H.
+  apply eq1.
+Qed.
+
+Theorem silly3_firsttry : forall (n : nat),
+     true = beq_nat n 5 ->
+     beq_nat (S (S n)) 7 = true.
+  Proof.
+    intros n H.
+    symmetry.
+    apply H.
+    Show Proof.
+    Print eq_sym.
+  Qed.
+
+
+
+Theorem rev_exercise1 : forall (l l' : list nat),
+     l = rev l' ->
+     l' = rev l.
+Proof.
+  intros l l' H.
+  apply rev_injective.
+  symmetry.
+  rewrite <- H.
+  apply rev_involutive.
+Qed.
+
+Theorem unfold_example : forall m n,
+  3 + n = m ->
+  plus3 n + 1 = m + 1.
+Proof.
+  intros m n H.
+  unfold plus3.
+  rewrite H.
+  reflexivity.
+Qed.
+
+
+Theorem override_eq : forall {X:Type} x k (f:nat -> X),
+  (override f k x) k = x.
+Proof.
+  intros X x k f.
+  unfold override.
+  simpl.
+  rewrite <- beq_nat_refl.
+  reflexivity.
+Qed.
+
+Theorem override_neq : forall {X:Type} x1 x2 k1 k2 (f : nat -> X),
+  f k1 = x1 ->
+  beq_nat k2 k1 = false -> 
+  (override f k2 x2) k1 = x1.
+Proof.
+  intros X x1 x2 k1 k2 f H neq.
+  unfold override.
+  rewrite neq.
+  apply H.
+Qed.
+
+Theorem override_example : forall (b:bool),
+  (override (constfun b) 3 true) 2 = b.
+Proof.
+  intro b.
+  unfold override.
+  simpl.
+  unfold constfun.
+  reflexivity.
+Qed.
