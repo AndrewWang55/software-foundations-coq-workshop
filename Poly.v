@@ -17,7 +17,8 @@ Fixpoint length (X:Type) (l:list X) : nat :=
   end.
 
 Example test_length1 :
-    length nat (cons nat 1 (cons nat 2 (nil nat))) = 2.
+
+  length nat (cons nat 1 (cons nat 2 (nil nat))) = 2.
 Proof. reflexivity.  Qed.
 
 Example test_length2 :
@@ -265,6 +266,7 @@ Definition plus'' x y := x + y.
 Definition plus' z w := (fun o:nat => z + w) O.
 Theorem identity_by_reduction : plus' = plus''.
   reflexivity.
+Qed.
 
 Theorem uncurry_curry : forall (X Y Z : Type) (f : X -> Y -> Z) (x:X) (y:Y),
   prod_curry (prod_uncurry f) x y  = f x y.
@@ -397,7 +399,7 @@ Definition constfun  {X:Type}  (v:X) : nat -> X :=
   fun _ => v.
 
 Definition ftrue := constfun true.
-
+Check ftrue.
 Example constfun_example1 : ftrue 0 = true.
 Proof. reflexivity. Qed.
 
@@ -440,9 +442,7 @@ Theorem silly2 : forall (n m o p : nat),
      [n,o] = [m,p].
 Proof.
   intros n m o p H1 H2.
-  Show Proof.
   apply H2.
-  Show Proof.
   apply H1.
 Show Proof.
 Qed.
@@ -471,6 +471,7 @@ Theorem silly3_firsttry : forall (n : nat),
      beq_nat (S (S n)) 7 = true.
   Proof.
     intros n H.
+    simpl.
     symmetry.
     apply H.
     Show Proof.
@@ -529,5 +530,77 @@ Proof.
   unfold override.
   simpl.
   unfold constfun.
+  reflexivity.
+Qed.
+
+
+Theorem eq_add_S : forall (n m : nat),
+     S n = S m ->
+     n = m.
+Proof.
+  intros n m eq.
+  inversion eq.
+  reflexivity.
+Qed.
+
+
+Theorem silly4 : forall (n m : nat),
+     [n] = [m] ->
+     n = m.
+Proof.
+  intros n m eq.
+  inversion eq.
+  reflexivity.
+Qed.
+
+Theorem silly5 : forall (n m o : nat),
+     [n,m] = [o,o] ->
+     [n] = [m].
+Proof.
+  intros n m o eq.
+  inversion eq.
+  reflexivity.
+Qed.
+
+
+Example sillyex1 : forall (X : Type) (x y z : X) (l j : list X),
+     x :: y :: l = z :: j ->
+     y :: l = x :: j ->
+     x = y.
+Proof.
+  intros X x y z l j.
+  intros H1 H2.
+  inversion H2.
+  reflexivity.
+Qed.
+
+Theorem silly6 : forall (n : nat),
+     S n = O ->
+     2 + 2 = 5.
+Proof.
+  intros n contra.
+  inversion contra.
+Qed.
+
+Theorem silly7 : forall (n m : nat),
+     false = true ->
+     [n] = [m].
+Proof.
+  intros n m contra.
+  inversion contra.
+Qed.
+
+Example sillyex2 : forall (X : Type) (x y z : X) (l j : list X),
+     x :: y :: l = [] ->
+     y :: l = z :: j ->
+     x = z.
+Proof.
+  intros X x y z l j contra eq.
+ inversion contra.
+ 
+Lemma eq_remove_S : forall n m,
+  n = m -> S n = S m.
+  intros n m eq.
+  rewrite eq.
   reflexivity.
 Qed.
