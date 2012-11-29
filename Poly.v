@@ -333,6 +333,7 @@ Fixpoint partition  {X:Type} (test : X -> bool) (l : list X) : (list X) * (list 
 Definition partition'  {X:Type} (test : X -> bool) (l : list X) : (list X) * (list X) :=
   (filter test l, filter (fun x => negb (test x)) l).
 
+  
 (* TODO : proove that partition' l and partition l are equal *)
 
 Example test_partition1: partition oddb [1,2,3,4,5] = ([1,3,5], [2,4]).
@@ -574,6 +575,8 @@ Proof.
   reflexivity.
 Qed.
 
+
+  
 Theorem silly6 : forall (n : nat),
      S n = O ->
      2 + 2 = 5.
@@ -603,4 +606,32 @@ Lemma eq_remove_S : forall n m,
   intros n m eq.
   rewrite eq.
   reflexivity.
+Qed.
+
+Theorem filter_exercise : forall (X : Type) (test : X -> bool)
+                             (x : X) (l lf : list X),
+     filter test l = x :: lf ->
+     test x = true.
+Proof.
+  intros X test x.
+  induction l as [|x' l'].
+  simpl.
+  intros.
+  inversion H.
+  simpl.
+
+  remember (test x').
+  destruct b.
+  destruct (filter test l').
+  intros.
+  inversion H.
+  rewrite <- H1.
+  rewrite Heqb.
+  reflexivity.
+  intros.
+  inversion H.
+  rewrite Heqb.
+  rewrite H1.
+  reflexivity.
+  apply IHl'.
 Qed.
