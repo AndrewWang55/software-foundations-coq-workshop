@@ -608,30 +608,20 @@ Lemma eq_remove_S : forall n m,
   reflexivity.
 Qed.
 
-Theorem filter_exercise : forall (X : Type) (test : X -> bool)
-                             (x : X) (l lf : list X),
-     filter test l = x :: lf ->
-     test x = true.
-Proof.
-  intros X test x.
-  induction l as [|x' l'].
-  simpl.
-  intros.
-  inversion H.
-  simpl.
 
-  remember (test x').
-  destruct b.
-  destruct (filter test l').
-  intros.
-  inversion H.
-  rewrite <- H1.
-  rewrite Heqb.
-  reflexivity.
-  intros.
-  inversion H.
-  rewrite Heqb.
-  rewrite H1.
-  reflexivity.
+Theorem length_snoc' : forall (X : Type) (v : X)
+                              (l : list X) (n : nat),
+     length l = n ->
+     length (snoc l v) = S n.
+Proof.
+  intros X v l.
+  induction l as [|x' l'].
+  Case "l = []". simpl. intros n H. rewrite H. reflexivity.
+  Case "l = x::l'".
+  simpl.
+  intros n H.
+  rewrite <- H.
+  apply eq_remove_S.
   apply IHl'.
+  reflexivity.
 Qed.
