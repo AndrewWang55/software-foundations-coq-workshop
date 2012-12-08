@@ -625,3 +625,206 @@ Proof.
   apply IHl'.
   reflexivity.
 Qed.
+
+Theorem beq_nat_eq : forall n m,
+  true = beq_nat n m -> n = m.
+Proof.
+  intros n.
+  induction n as [| n'].
+  Case "n = 0".
+    destruct m as [|m'].
+    SCase "m = 0". intro H. reflexivity.
+    SCase "m = S m'". simpl. intro contra. inversion contra.
+  Case "n = S n'".
+     destruct m as [|m'].
+     SCase "m = 0". simpl. intro contra. inversion contra.
+     SCase "m = S m'".
+       simpl.
+       intro.
+       apply eq_remove_S.
+       apply IHn'.
+       apply H.
+Qed.  
+
+
+
+Theorem beq_nat_eq' : forall m n,
+  beq_nat n m = true -> n = m.
+Proof.
+  intros m. induction m as [| m'].
+  destruct n.
+  auto.
+  simpl.
+  intro. inversion H.
+  destruct n.
+  simpl.
+  intro. inversion H.
+  simpl.
+  intros.
+  apply eq_remove_S.
+  apply IHm'.
+  apply H.
+Qed.
+
+
+Theorem beq_nat_0_l : forall n,
+  true = beq_nat 0 n -> 0 = n.
+Proof.
+  intro n.
+  destruct n.
+  intro. 
+  reflexivity.
+  simpl.
+  intro. 
+  inversion  H.
+Qed.
+
+
+Theorem beq_nat_0_r : forall n,
+  true = beq_nat n 0 -> n = 0.
+Proof.
+  intros.
+  destruct  n.
+  reflexivity.
+  simpl in H.
+  inversion  H.
+Qed.
+
+Theorem beq_nat_sym : forall (n m : nat),
+  beq_nat n m = beq_nat m n.
+Proof.
+  intro n.
+  induction n as [|n'].
+  destruct m.
+  reflexivity.
+  reflexivity.  
+  destruct m.
+  reflexivity.  
+  simpl. apply IHn'.
+Qed.
+
+
+Theorem S_inj : forall (n m : nat) (b : bool),
+     beq_nat (S n) (S m) = b ->
+     beq_nat n m = b.
+Proof.
+  intros  n m b.
+  intro H.
+  simpl in H.
+  apply H.
+Qed.
+
+
+Theorem silly3' : forall (n : nat),
+  (beq_nat n 5 = true -> beq_nat (S (S n)) 7 = true) ->
+     true = beq_nat n 5 ->
+     true = beq_nat (S (S n)) 7.
+Proof.
+  intros n H1 H2.
+  symmetry in H2.
+  apply H1 in H2.
+  symmetry in H2.
+  apply H2.
+Qed.
+
+
+Theorem plus_n_n_injective : forall n m,
+     n + n = m + m ->
+     n = m.
+Proof.
+  intros n.
+  induction n as [|n'].
+  destruct m.
+  intro H. reflexivity.
+  simpl. intro contra. inversion contra.
+  destruct m as [|m'].
+  intros contra. inversion contra.
+  intro H. apply eq_remove_S.
+  apply IHn'.
+  simpl in H.
+  inversion H.
+  rewrite <- plus_n_Sm in H1. 
+  rewrite <- plus_n_Sm in H1. 
+  inversion H1.
+  reflexivity.
+Qed.
+
+
+Definition sillyfun (n : nat) : bool :=
+  if beq_nat n 3 then false
+  else if beq_nat n 5 then false
+  else false.
+
+Theorem sillyfun_false : forall (n : nat),
+  sillyfun n = false.
+Proof.
+  intro n.
+  unfold sillyfun.
+  simpl.
+  destruct (beq_nat n 3).
+  reflexivity.
+  destruct (beq_nat n 5).
+  reflexivity. reflexivity.
+Qed.
+
+Theorem override_shadow : forall {X:Type} x1 x2 k1 k2 (f : nat -> X),
+  (override (override f k1 x2) k1 x1) k2 = (override f k1 x1) k2.
+Proof.
+  intros X x1 x2 k1 k2 f.
+  unfold override.
+  destruct (beq_nat k1 k2).
+  reflexivity.
+  reflexivity.
+Qed.
+
+Lemma eq_remove_cons : forall (X:Type) (l1 l2: list X) (x: X),
+  l1 = l2 -> x :: l1 = x :: l2.
+  intros X l1 l2 x.
+  intro H.
+  rewrite H.
+  reflexivity.
+Qed.
+
+Theorem combine_split : forall X Y (l : list (X * Y)) l1 l2,
+  split l = (l1, l2) ->
+  combine l1 l2 = l.
+Proof.
+  intros X Y l.
+  induction l as [| [x y] l'].
+  intros l1 l2.
+  simpl.
+  intro H.
+  inversion H.
+  reflexivity.
+  intros l1 l2.
+  simpl.
+  intro H.
+  inversion H.
+  simpl.
+  apply eq_remove_cons.
+  apply IHl'.
+  destruct (split l').
+  reflexivity.
+Qed. 
+
+Theorem split_combine: forall (X:Type) (l1 l2: list X),
+   (length l1 = length l2) -> split (combine l1 l2) = (l1,l2).
+  intros X l1.
+  induction l1.
+  simpl.
+  intros l2 H.
+  destruct l2.
+  reflexivity.
+  inversion H.
+  intros l2 H.
+  simpl in H.
+  destruct l2 as [|y l2'].
+  simpl.
+  inversion H.
+  simpl in H.
+  inversion H.
+  apply IHl1 in H1.
+  simpl.
+  rewrite H1.
+  reflexivity.
+Qed.  
