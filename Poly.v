@@ -600,6 +600,7 @@ Example sillyex2 : forall (X : Type) (x y z : X) (l j : list X),
 Proof.
   intros X x y z l j contra eq.
  inversion contra.
+Qed.
  
 Lemma eq_remove_S : forall n m,
   n = m -> S n = S m.
@@ -827,4 +828,156 @@ Theorem split_combine: forall (X:Type) (l1 l2: list X),
   simpl.
   rewrite H1.
   reflexivity.
-Qed.  
+Qed.
+
+Definition fold_length {X : Type} (l : list X) : nat :=
+  fold (fun _ n => S n) l 0.
+
+Example test_fold_length1 : fold_length [4,7,0] = 3.
+Proof. reflexivity. Qed.
+
+Theorem fold_length_correct : forall X (l : list X),
+  fold_length l = length l.
+Proof.
+  intros X l.
+  induction l as [|x  l'].
+  reflexivity.
+  unfold fold_length.
+  simpl.
+  unfold fold_length in IHl'.
+  apply eq_remove_S.
+  apply IHl'.
+Qed.
+
+Definition fold_map {X Y:Type} (f : X -> Y) (l : list X) : list Y :=
+  fold (fun x rest => (f x) :: rest) l [].
+
+Theorem fold_map_correct : forall (X Y:Type) (f : X -> Y) (l:list X),
+  fold_map f l = map f l.
+Proof.
+  intros X Y f l.
+  induction l as [|x l'].
+  reflexivity.
+  unfold fold_map in IHl'.
+  unfold fold_map.
+  simpl.
+  rewrite IHl'.
+  reflexivity.
+Qed.
+
+Fixpoint forallb {X : Type} (test : X -> bool) (l : list X) :=
+  match l with
+    | [] => true
+    | h :: t => andb (test h) (forallb test t)
+  end.
+
+Fixpoint existsb {X : Type} (test : X -> bool) (l : list X) :=
+  match l with
+    | [] => false
+    | h :: t => orb (test h) (existsb test t)
+  end.
+
+
+Definition existsb' {X:Type} (test : X -> bool) (l : list X) :=
+  negb (forallb (fun x => negb (test x)) l).
+ 
+ 
+Theorem x_law_1: forall (p q: bool),
+  (negb (andb p q)) = (orb (negb p) (negb q)).
+  intros p q.
+  destruct p.
+  simpl.
+  reflexivity.
+  simpl.
+  reflexivity.
+Qed.
+
+  
+Theorem existsb_correct : forall (X Y:Type) (test : X -> bool) (l:list X),
+  existsb' test l = existsb test l.
+Proof.
+  intros X Y test l.
+  induction l as [| x l'].
+  reflexivity.
+  simpl.
+  unfold existsb'.
+  unfold existsb' in IHl'.
+  simpl.
+  rewrite x_law_1.
+  rewrite  negb_involutive.
+  rewrite IHl'.
+  reflexivity.
+Qed.
+
+Theorem app_nil_r : forall (X:Type) (l : list X),
+  (l ++ []) = l.
+intros X l.
+induction l.
+reflexivity.
+simpl.
+rewrite IHl.
+reflexivity.
+Qed.
+
+Theorem length_app_sym : forall (X:Type) (l1 l2 : list X) (x:X) (n:nat),
+   length (l1 ++ l2) = n ->  length (l1 ++ (x::l2)) = S n.
+Proof.
+  intros X l1.
+  induction l1.
+  simpl.
+  intros.
+  rewrite H.
+  reflexivity.
+  simpl.
+  intros.
+  apply eq_remove_S.
+  destruct n.
+  inversion H.
+  apply IHl1.
+  inversion H.
+  reflexivity.
+Qed.
+
+Theorem app_length_twice : forall (X:Type) (n:nat) (l:list X),
+     length l = n ->
+     length (l ++ l) = n + n.
+Proof.
+  intros X n l.
+  generalize dependent n.
+  induction l.
+  simpl.
+  intros.
+  rewrite <- H.
+  reflexivity.
+  simpl.
+  intros n H.
+  destruct n.
+  inversion H.
+  simpl.
+  inversion H.
+  simpl.
+  apply eq_remove_S.
+  rewrite <- plus_n_Sm.
+  rewrite H1.
+  apply length_app_sym.
+  apply IHl.
+  apply H1.
+Qed.
+
+(*
+
+Unset Printing Notations.
+
+Fixpoint  pedja_plus_right_0 (n:nat) :  n + 0 = n :=
+  match n return (n+0 = n) with
+    | O => eq_refl O
+    | S n' => match (pedja_plus_right_0  n') in (eq _ x) return (S (n' + 0) =  S x) with
+                | eq_refl => eq_refl ( S (plus n' O))
+              end
+      (* n' + 0 = n' *)
+      (* S n' + 0 = S n' *)
+(*match pedja_plus_right_0 n' in (eq _ x) return (S x = S n') with
+                | eq_refl => eq_refl (plus (S n') O)
+              end*)
+  end.
+  *)
