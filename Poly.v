@@ -476,7 +476,6 @@ Theorem silly3_firsttry : forall (n : nat),
     symmetry.
     apply H.
     Show Proof.
-    Print eq_sym.
   Qed.
 
 
