@@ -2,12 +2,12 @@
 Require Export Poly.
 
 
+
 Inductive beautiful : nat -> Prop :=
   | b_0 : beautiful 0
   | b_3 : beautiful 3
   | b_5 : beautiful 5
   | b_sum : forall (n m : nat), beautiful n -> beautiful m -> beautiful (n + m).
-  
 
 Theorem beautiful_3 : beautiful 3.
   apply b_3.
@@ -181,6 +181,14 @@ Inductive ev : nat -> Prop :=
   | ev_0 : ev O
   | ev_SS : forall n:nat, ev n -> ev (S (S n)).
 
+
+Theorem ev_4 : ev 4.
+  apply ev_SS.
+  apply ev_SS.
+  apply ev_0.
+Qed.
+
+
 Theorem double_even : forall n, ev (double n).
 Proof.
   induction n  as [| n'].
@@ -201,10 +209,11 @@ Theorem ev_minus2: forall n,
   ev n -> ev (pred (pred n)).
   Proof.
     intros n E.
-    destruct E as [| n'].
+    destruct E as [| n' E'].
+    simpl.
     apply ev_0.
     simpl.
-    apply E.
+    apply E'.
 Qed.
 
 
