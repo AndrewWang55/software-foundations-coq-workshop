@@ -42,8 +42,8 @@ Proof.
 Qed.
 
 Theorem and_commut : forall P Q : Prop,
-Proof.
   P /\ Q -> Q /\ P.
+Proof.
   intros P Q H.
   inversion H as [HP HQ].
   split.
