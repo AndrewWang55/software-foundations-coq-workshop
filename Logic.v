@@ -277,3 +277,128 @@ Qed.
 Definition not (P:Prop) := P -> False.
 
 Notation "~ x" := (not x) : type_scope.
+
+
+Theorem not_False :
+  ~ False.
+Proof.
+  unfold not.
+  intro contra.
+  inversion contra.
+Qed.  
+
+
+Theorem contradiction_implies_anything : forall P Q : Prop,
+  (P /\ ~P) -> Q.
+Proof.
+  intros p q contra.
+  inversion contra as [HP HNP].
+  unfold not in HNP.  (* Dragan: novo *)
+  apply HNP in HP.
+  inversion HP.
+Qed.
+
+Theorem double_neg : forall P : Prop,
+  P -> ~~P.
+Proof.
+  intros P HP.
+  unfold not.
+  intro H.
+  apply H in HP.
+  inversion HP.
+Qed.
+
+
+Theorem contrapositive : forall P Q : Prop, 
+  (P -> Q) -> (~Q -> ~P).
+Proof.
+  intros P Q H.
+  intro HNQ.
+  unfold not.
+  intro HP.
+  apply H in HP.
+  apply contradiction_implies_anything with (P:=Q).
+  split.
+  apply HP.
+  apply HNQ.
+Qed.
+
+Theorem not_both_true_and_false : forall P : Prop,
+  ~ (P /\ ~P).
+Proof.
+  unfold not.
+  intros P contra.
+  apply contradiction_implies_anything with (P:=P).
+  apply contra.
+Qed.
+
+Theorem five_not_even :
+  ~ ev 5.
+Proof.
+  unfold not.
+  intro contra.
+  inversion contra.
+  inversion H0.
+  inversion H2.
+Qed.
+
+Theorem ev_not_ev_S : forall n,
+  ev n -> ~ ev (S n).
+Proof.
+  intros n E.
+  induction E  as [ | n' E' ].
+  unfold not.
+  intros contra. inversion contra.
+  unfold not.
+  intros ES.
+  inversion ES.
+  unfold not in IHE'.
+  apply IHE' in H0.
+  inversion H0.
+Qed.
+
+Definition peirce := forall P Q: Prop,
+  ((P -> Q) -> P) -> P.
+
+Definition classic := forall P:Prop,
+  ~~P -> P.
+
+Definition excluded_middle := forall P:Prop,
+  P \/ ~P.
+
+Definition de_morgan_not_and_not := forall P Q:Prop,
+  ~(~P /\ ~Q) -> P \/ Q.
+
+Definition implies_to_or := forall P Q:Prop,
+  (P -> Q)  ->  (~P \/ Q).
+
+Theorem peirce_eq_excluded_middle : peirce <-> excluded_middle.
+  split.
+  unfold peirce.
+  unfold excluded_middle.
+  intros peirceH.
+  intros P.
+  apply peirceH with (Q:=False).
+  intros H.
+  right.
+  unfold not.
+  intro HP.
+  apply H.
+  left.
+  apply HP.
+  unfold excluded_middle.
+  unfold peirce.
+  
+  intros excluded_middleH.
+  intros P Q H.
+  
+  assert (P \/ ~P).
+  apply excluded_middleH.
+  inversion H0.
+  apply H1.
+  apply H.
+  intros HP.
+  unfold not in H1.
+  apply H1 in HP.
+  inversion HP.
+Qed.
