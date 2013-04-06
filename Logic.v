@@ -402,3 +402,155 @@ Theorem peirce_eq_excluded_middle : peirce <-> excluded_middle.
   apply H1 in HP.
   inversion HP.
 Qed.
+
+
+Notation "x <> y" := (~ (x = y)) : type_scope.
+
+
+
+
+Theorem not_false_then_true : forall b : bool,
+  b <> false -> b = true.
+  Proof.
+    intros b H.
+    destruct b.
+    reflexivity.
+    apply ex_falso_quodlibet.
+    unfold not in H.
+    apply H.
+    reflexivity.
+Qed.
+
+Theorem not_eq_beq_false : forall n n' : nat,
+     n <> n' ->
+     beq_nat n n' = false.
+Proof.
+  intros n.
+  induction n.
+  intros n' H.
+  destruct n' as [| n''].
+  simpl.
+  apply ex_falso_quodlibet.
+  apply H.
+  reflexivity.
+  simpl.
+  reflexivity.
+  intros n' H.
+  destruct n' as [| n''].
+  simpl.
+  reflexivity.
+  simpl.
+  apply IHn.
+  unfold not.
+  intros H'.
+  unfold not in H.
+  apply H.
+  rewrite H'.
+  reflexivity.
+Qed.  
+
+Print beq_nat.
+
+Theorem beq_false_not_eq : forall n m,
+  false = beq_nat n m -> n <> m.
+Proof.
+  intro n.
+  induction n as [| n' H].
+  intros m H0.
+  destruct m as [| m'].
+  unfold not.
+  simpl in H0.
+  inversion H0.
+  unfold not.
+  intro contra.
+  inversion contra.
+  intros m H'.
+  destruct m as [| m'].
+  unfold not.
+  intro contra.
+  inversion contra.
+  unfold not.
+  intro H''.
+  simpl in H'.
+  apply H in H'.
+  unfold not in H'.
+  apply H'.
+  inversion H''.
+  reflexivity.
+Qed.
+
+
+Inductive ex (A:Type) (P: A -> Prop) : Prop :=
+  ex_intro : forall (witness : A), P witness -> ex A P.
+
+
+Definition some_nat_is_even : Prop :=
+  ex nat ev.
+
+Definition snie : some_nat_is_even := 
+   ex_intro nat ev 2  (ev_SS 0 (ev_0)).
+
+Notation "'exists' x , p" := (ex _ (fun x => p))
+  (at level 200, x ident, right associativity) : type_scope.
+Notation "'exists' x : X , p" := (ex _ (fun x:X => p))
+  (at level 200, x ident, right associativity) : type_scope.  
+
+Check exists x, ev x.
+
+Example exists_example_1 : exists n, n + (n * n) = 6.
+Proof.
+  apply ex_intro with (witness := 2).
+  reflexivity.
+Qed.
+
+Example exists_example_1' : exists n,
+  n + (n * n) = 6.
+Proof.
+  exists 2.
+  reflexivity.
+Qed.
+
+
+Theorem exists_example_2 : forall n,
+  (exists m, n = 4 + m) ->
+  (exists o, n = 2 + o).
+Proof.
+  intros n H.
+  inversion H as [m Hm].
+  exists (2 + m).  
+  rewrite Hm.
+  reflexivity.
+Qed.  
+
+
+Theorem dist_not_exists : forall (X:Type) (P : X -> Prop),
+  (forall x, P x) -> ~ (exists x, ~ P x).
+Proof.
+  intros X P H.
+  unfold not.
+  intro E.
+  inversion E as [ x Hx ].
+  apply Hx.
+  apply H.
+Qed.
+
+Theorem not_exists_dist :
+  excluded_middle ->
+  forall (X:Type) (P : X -> Prop),
+    ~ (exists x, ~ P x) -> (forall x, P x).
+Proof.
+  unfold excluded_middle.
+  intros excl_mid.
+  intros X P H.
+  intros x.
+  assert ( P x \/ ~ P x).
+  apply excl_mid.
+  inversion H0.
+  apply H1.
+  apply ex_falso_quodlibet.
+  unfold not in H.
+  apply H.
+  unfold not in H1.
+  exists x.
+  apply H1.
+Qed.
