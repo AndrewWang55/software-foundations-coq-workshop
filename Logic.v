@@ -554,3 +554,146 @@ Proof.
   exists x.
   apply H1.
 Qed.
+
+
+Module MyEquality.
+  
+  Inductive eq_ (X:Type) : X -> X -> Prop :=
+    refl_equal : forall x:X, eq_ X x x.
+  
+  
+  Notation "x =_ y" := (eq_ _ x y)
+                    (at level 70, no associativity) : type_scope.
+
+  Inductive eq' (X:Type) (x:X) : X -> Prop :=
+    refl_equal' : eq' X x x.
+  
+  Notation "x =' y" := (eq' _ x y)
+                     (at level 70, no associativity) : type_scope.
+  
+  Theorem two_defs_of_eq_coincide : forall (X:Type) (x y : X),
+    x =_ y <-> x =' y.
+    Proof.
+      split.
+      intro H.
+      inversion H.
+      apply refl_equal'.
+      intros. inversion H. apply refl_equal.
+    Qed.
+    
+Definition inc x := S x.
+Definition inc_3_eq_4 : inc 3 =_ 4 := refl_equal nat (4).
+
+Eval cbv delta beta in 3.
+
+End MyEquality.
+
+Module LeFirstTry.
+
+  Inductive le : nat -> nat -> Prop :=
+  | le_n : forall n, le n n
+  | le_S : forall n, forall m, le n m ->  le n (S m).
+  
+End LeFirstTry.
+
+  Inductive le (n: nat) : nat -> Prop :=
+  | le_n : le n n
+  | le_S : forall  m, le n m ->  le n (S m).
+
+
+  Inductive le' : nat ->  nat -> Prop :=
+  | le'_0 : forall n, le' 0  n
+  | le'_S : forall  n m, le' n m ->  le' (S n) (S m).
+
+  Notation "m <= n" := (le m n).
+
+  Theorem test_le1 :
+  3 <= 3.
+    apply le_n.
+
+  Qed.    
+  
+  Theorem test_le2 :
+    3 <= 5.
+    apply le_S.
+    apply le_S.
+    apply le_n.
+  Qed.
+  
+
+Theorem test_le3 :
+  ~ (2 <= 1).
+Proof.
+  unfold not.
+  intro H.
+  inversion H.
+  inversion H1.
+Qed.
+
+Definition lt (n m:nat) := le (S n) m.
+
+Notation "m < n" := (lt m n).
+
+Inductive square_of : nat -> nat -> Prop :=
+  sq : forall x, square_of x (x * x).
+
+Inductive next_nat (n:nat) : nat -> Prop :=
+  | nn : next_nat n (S n).
+
+Inductive next_even (n:nat) : nat -> Prop :=
+  | ne_1 : ev (S n) -> next_even n (S n)
+  | ne_2 : ev (S (S n)) -> next_even n (S (S n)).
+
+Inductive total_relation (R : nat -> nat -> Prop) : Prop :=
+  total : (forall x y, R x y \/ R y x) -> total_relation R.
+
+Inductive symmetric_relation (R : nat -> nat -> Prop) : Prop :=
+  sym : (forall x y, R x y -> R y x) -> symmetric_relation R.
+
+Inductive R : nat -> nat -> nat -> Prop :=
+   | c1 : R 0 0 0
+   | c2 : forall m n o, R m n o -> R (S m) n (S o)
+   | c3 : forall m n o, R m n o -> R m (S n) (S o)
+   | c4 : forall m n o, R (S m) (S n) (S (S o)) -> R m n o
+   | c5 : forall m n o, R m n o -> R n m o.
+
+
+     (*
+Theorem c5_in_r_is_redundant : forall n m o, R n m o -> R m n o.
+*)
+  
+Inductive all (X:Type) (P:X -> Prop) : list X -> Prop :=
+  | all_nil : all X P nil
+  | all_cons :  forall (l:list X) (x:X), all X P l ->  P x   -> all X P (x::l).
+
+Fixpoint forallb {X:Type} (test: X -> bool) (l:list X) : bool :=
+  match l with
+    | [] => true
+    | h::t => if (test h) then forallb test t else false
+  end.
+
+Theorem forallb_correct : forall (X:Type) (l:list X) (test : X -> bool),
+  forallb test l = true <-> all X (fun x => test  x = true) l.
+  intros.
+  split.
+  intros.
+  induction l as [| x l'].
+  apply all_nil.
+  simpl in H.
+  remember (test x).
+  destruct b.
+  apply all_cons.
+  apply IHl'.
+  apply H.
+  symmetry.
+  apply Heqb.
+  inversion H.
+
+  
+  intros.
+  induction H as [ | l' x H1 H2] .
+  reflexivity.
+  simpl.
+  rewrite H.
+  apply H2.
+Qed.  
