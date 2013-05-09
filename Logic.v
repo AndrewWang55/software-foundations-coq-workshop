@@ -480,6 +480,12 @@ Proof.
 Qed.
 
 
+
+
+
+
+
+
 Inductive ex (A:Type) (P: A -> Prop) : Prop :=
   ex_intro : forall (witness : A), P witness -> ex A P.
 
@@ -487,30 +493,32 @@ Inductive ex (A:Type) (P: A -> Prop) : Prop :=
 Definition some_nat_is_even : Prop :=
   ex nat ev.
 
+
+Check ev_SS.
+  
 Definition snie : some_nat_is_even := 
-   ex_intro nat ev 2  (ev_SS 0 (ev_0)).
+  ex_intro nat ev 2 (ev_SS 0 (ev_0)).
+
+
 
 Notation "'exists' x , p" := (ex _ (fun x => p))
   (at level 200, x ident, right associativity) : type_scope.
 Notation "'exists' x : X , p" := (ex _ (fun x:X => p))
   (at level 200, x ident, right associativity) : type_scope.  
 
-Check exists x, ev x.
+Check exists z:nat, ev z.
+
 
 Example exists_example_1 : exists n, n + (n * n) = 6.
-Proof.
-  apply ex_intro with (witness := 2).
-  reflexivity.
-Qed.
-
-Example exists_example_1' : exists n,
-  n + (n * n) = 6.
-Proof.
-  exists 2.
-  reflexivity.
+apply ex_intro with (witness := 2).
+reflexivity.
 Qed.
 
 
+
+
+
+  
 Theorem exists_example_2 : forall n,
   (exists m, n = 4 + m) ->
   (exists o, n = 2 + o).
@@ -657,43 +665,53 @@ Inductive R : nat -> nat -> nat -> Prop :=
    | c4 : forall m n o, R (S m) (S n) (S (S o)) -> R m n o
    | c5 : forall m n o, R m n o -> R n m o.
 
-
-     (*
-Theorem c5_in_r_is_redundant : forall n m o, R n m o -> R m n o.
-*)
-  
-Inductive all (X:Type) (P:X -> Prop) : list X -> Prop :=
-  | all_nil : all X P nil
-  | all_cons :  forall (l:list X) (x:X), all X P l ->  P x   -> all X P (x::l).
-
-Fixpoint forallb {X:Type} (test: X -> bool) (l:list X) : bool :=
+Fixpoint forallb (X:Type) (test: X -> bool) (l: list X) : bool :=
   match l with
     | [] => true
-    | h::t => if (test h) then forallb test t else false
+    | h::t => andb (test h) (forallb X test t)
   end.
 
-Theorem forallb_correct : forall (X:Type) (l:list X) (test : X -> bool),
-  forallb test l = true <-> all X (fun x => test  x = true) l.
-  intros.
+Inductive all (X:Type) (P:X->Prop) : list X -> Prop :=
+| all_nil : all X P nil
+| all_cons : forall (l:list X) (x:X), all X P l -> P x -> all X P (x::l).
+
+  
+Theorem forallb_ok : forall X l test,
+  forallb X test l = true <-> all X (fun x => test x = true) l.
+  intros X l test.
   split.
-  intros.
+  intro H.
   induction l as [| x l'].
   apply all_nil.
   simpl in H.
-  remember (test x).
-  destruct b.
-  apply all_cons.
-  apply IHl'.
-  apply H.
-  symmetry.
-  apply Heqb.
+  apply andb_true__and in H.
   inversion H.
+  apply IHl' in H1.
+  apply all_cons.
+  apply H1.
+  apply H0.
 
   
-  intros.
-  induction H as [ | l' x H1 H2] .
+  intros H.
+  
+  induction H as [|l' x H1 H2].
   reflexivity.
   simpl.
-  rewrite H.
+  apply and__andb_true.
+  split.
+  apply H.
   apply H2.
-Qed.  
+Qed.
+
+Fixpoint filter (X:Type) (test : X -> bool) (l : list X) : list X :=
+  match l with
+    | [] => []
+    | h :: t => if (test h) then h::(filter X test t) else (filter X test t)
+  end.
+
+
+
+  
+
+
+  
