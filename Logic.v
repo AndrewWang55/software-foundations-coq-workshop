@@ -709,9 +709,53 @@ Fixpoint filter (X:Type) (test : X -> bool) (l : list X) : list X :=
     | h :: t => if (test h) then h::(filter X test t) else (filter X test t)
   end.
 
-
-
+Inductive in_order_merge (X:Type) : list X -> list X -> list X -> Prop :=
+  | in_order_merge_nil : in_order_merge X [] [] []
+  | in_order_merge_left : forall (x:X) (l1 l2 l3: list X),
+    in_order_merge X l1 l2 l3 -> in_order_merge X (x::l1) l2 (x::l3)
+  | in_order_merge_right : forall (x:X) (l1 l2 l3: list X),
+    in_order_merge X l1 l2 l3 -> in_order_merge X (l1) (x::l2) (x::l3).
   
 
+ (*
+---------------------
+in_order_merge [] [] []
+-------------------------- in_order_merge_right
+in_order_merge [] [4] [4]
+------------------------------
+in_order_merge [2] [4] [2,4]
+------------------------------- left
+in_order_merge [1,2] [4] [1,2,4]
+--------------------------------      in_order_merge_right
+in_order_merge [1,2] [3,4] [3,1,2,4]
+*)
 
-  
+Goal in_order_merge nat [1,2] [3,4] [3,1,2,4].
+  apply in_order_merge_right.
+  apply in_order_merge_left.
+  apply in_order_merge_left.
+  apply in_order_merge_right.
+  apply in_order_merge_nil.
+Qed.
+
+Goal ~ (in_order_merge nat [1,2] [3] [3,2,1]).
+  intro H.
+  inversion H.
+  inversion H2.
+Qed.
+
+
+Theorem filter_correct : forall (X:Type) (l1 l2 l3 : list X) (test : X -> bool),
+  in_order_merge X l1 l2 l3 ->
+  all X (fun x => test x = true) l1 ->
+  all X (fun x => test x = false) l2 ->
+  filter X test l3 = l1.
+  intros X l1 l2 l3 test Hiom Ha Hn.
+  induction Hiom as [| x l1' l2 l3' | x' l1 l2' l3'].
+  reflexivity.
+  inversion Ha.
+    simpl. rewrite H2. apply eq_remove_cons. apply IHHiom.
+     apply H1.
+     apply Hn.
+  inversion Hn. simpl. rewrite H2. apply IHHiom. apply Ha. apply H1.
+Qed.
