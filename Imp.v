@@ -149,29 +149,12 @@ Theorem optimize_0bool_sound : forall (b:bexp),
   Qed.
 
    
-Module aevalR_first_try.
+Reserved Notation "e '||' n" (at level 50, left associativity).
 
 Inductive aevalR : aexp -> nat -> Prop :=
-  | E_ANum : forall (n: nat),
-      aevalR (ANum n) n
-  | E_APlus : forall (e1 e2: aexp) (n1 n2: nat),
-      aevalR e1 n1 ->
-      aevalR e2 n2 ->
-      aevalR (APlus e1 e2) (n1 + n2)
-  | E_AMinus: forall (e1 e2: aexp) (n1 n2: nat),
-      aevalR e1 n1 ->
-      aevalR e2 n2 ->
-      aevalR (AMinus e1 e2) (n1 - n2)
-  | E_AMult : forall (e1 e2: aexp) (n1 n2: nat),
-      aevalR e1 n1 ->
-      aevalR e2 n2 ->
-      aevalR (AMult e1 e2) (n1 * n2). 
+  where "e '||' n" := (aevalR e n) : type_scope.
 
-
-Notation "e '||' n" := (aevalR e n) : type_scope.
-
-End aevalR_first_try.
-
+End AExp.
 
 Module Id.
   
@@ -241,6 +224,7 @@ Qed.
 
 End Id.
 
+
 Definition state := id -> nat.
 
 Definition empty_state : state := 
@@ -278,6 +262,7 @@ Theorem update_shadow : forall x1 x2  k1 k2 (f : state),
   destruct (beq_id k2 k1).
   reflexivity.
   reflexivity.
+Qed.
   
 
 Theorem update_same : forall x1 k1 k2 (f : state),
@@ -316,3 +301,177 @@ Proof.
   reflexivity.
   reflexivity.
 Qed.
+
+Inductive aexp : Type :=
+  | ANum : nat -> aexp
+  | AId : id -> aexp
+  | APlus : aexp -> aexp -> aexp
+  | AMinus : aexp -> aexp -> aexp
+  | AMult : aexp -> aexp -> aexp.
+
+Definition X := Id 0.
+Definition Y := Id 1.
+Definition Z := Id 2.
+  
+Inductive bexp : Type :=
+  | BTrue : bexp
+  | BFalse : bexp
+  | BEq : aexp -> aexp -> bexp
+  | BLe : aexp -> aexp -> bexp
+  | BNot : bexp -> bexp
+  | BAnd : bexp -> bexp -> bexp.
+
+Fixpoint aeval (st : state) (a : aexp) : nat :=
+  match a with
+    | ANum n =>  n
+    | AId id => st id
+    | APlus e1 e2 => (aeval st e1) + (aeval st e2)
+    | AMinus e1 e2 => (aeval st e1) - (aeval st e2)
+    | AMult e1 e2 => (aeval st e1) * (aeval st e2)
+  end.
+
+Fixpoint beval (st : state) (e : bexp) : bool :=
+  match e with
+  | BTrue => true
+  | BFalse => false
+  | BEq a1 a2 => beq_nat (aeval st a1) (aeval st a2)
+  | BLe a1 a2 => ble_nat (aeval st a1) (aeval st a2)
+  | BNot b1 => negb (beval st b1)
+  | BAnd b1 b2 => andb (beval st b1) (beval st b2)
+  end.
+
+Eval compute in aeval (update empty_state X 100) (APlus (AId X) (ANum 1)).
+
+Inductive com : Set :=
+  | CSkip : com
+  | CAss : id -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com.
+
+Definition example_prog_1 := CSeq
+        (CSkip)
+        (CIf (BEq (AId X) (ANum 1))
+           CSkip
+           (CAss X (ANum 3))).
+
+Notation "'SKIP'" :=
+  CSkip.
+Notation "X '::=' a" :=
+  (CAss X a) (at level 60).
+Notation "c1 ; c2" :=
+  (CSeq c1 c2) (at level 80, right associativity).
+Notation "'WHILE' b 'DO' c 'END'" :=
+  (CWhile b c) (at level 80, right associativity).
+Notation "'IFB' e1 'THEN' e2 'ELSE' e3 'FI'" :=
+  (CIf e1 e2 e3) (at level 80, right associativity).
+
+Check SKIP ;
+      IFB (BEq (AId X) (ANum 1))
+        THEN
+          SKIP
+        ELSE
+          X ::= ANum 3 FI.
+
+Definition fact_in_coq : com :=
+  Z ::= AId X;
+  Y ::= ANum 1;
+  WHILE BNot (BEq (AId Z) (ANum 0)) DO
+    Y ::= AMult (AId Y) (AId Z);
+    Z ::= AMinus (AId Z) (ANum 1)
+  END.
+
+Definition plus2 : com :=
+  X ::= (APlus (AId X) (ANum 2)).
+
+Definition XtimesYinZ : com :=
+  Z ::= (AMult (AId X) (AId Y)).
+
+Definition subtract_slowly_body : com :=
+  Z ::= AMinus (AId Z) (ANum 1) ;
+  X ::= AMinus (AId X) (ANum 1).
+
+Definition subtract_slowly : com :=
+  WHILE BNot (BEq (AId X) (ANum 0)) DO
+    subtract_slowly_body
+  END.
+
+Definition loop : com :=
+  WHILE BTrue DO
+     SKIP
+  END.
+
+Definition fact_body : com :=
+  Y ::= AMult (AId Y) (AId Z) ;
+  Z ::= AMinus (AId Z) (ANum 1).
+
+Definition fact_loop : com :=
+  WHILE BNot (BEq (AId Z) (ANum 0)) DO
+    fact_body
+  END.
+
+Definition fact_com : com :=
+  Z ::= AId X ;
+  Y ::= ANum 1;
+  fact_loop.
+
+Theorem imp_example : forall P:Prop, P -> P.
+  intros P.
+  intros HP.
+  apply HP.
+Qed.
+
+
+(* 
+Fixpoint ceval_fun (st : state) (c : com) : state :=
+  match c with
+    | SKIP => st
+    | l ::= a1 => update st l (aeval st a1)
+    | c1 ; c2 =>  let st' :=  (ceval_fun st c1) in
+                  (ceval_fun st' c2)
+    | IFB b THEN c1 ELSE c2 FI => if beval st b then ceval_fun st c1 else ceval_fun st c2
+    | WHILE b DO c1 END => if (beval st b) then
+      let st' := (ceval_fun st c1) in ceval_fun st' c
+       else st
+  end.
+  *)
+        
+
+Reserved Notation "c1 '/' st '||' st'" (at level 40, st at level 39).
+
+Inductive ceval : com -> state -> state -> Prop :=
+  | E_Skip : forall (st : state),
+      SKIP / st || st
+  | E_Ass : forall (st : state) (a : aexp) (n : nat) (X : id),
+       aeval st a = n ->  (X ::= a) / st || (update st X n)
+  | E_Seq : forall (c1 c2 : com) (st st' st'' : state),
+       (c1 / st || st') -> (c2 / st' || st'') -> (c1 ; c2) / st || st''
+  | E_IfTrue : forall (st st': state) (c1 c2 : com) (b : bexp),
+       beval st b = true -> c1 / st || st' -> (IFB b THEN c1 ELSE c2 FI) / st || st'
+  | E_IfFalse : forall (st st': state) (c1 c2 : com) (b : bexp),
+       beval st b = false -> c2 / st || st' -> (IFB b THEN c1 ELSE c2 FI) / st || st'
+  | E_WhileEnd : forall (st : state) (c1 : com) (b : bexp),
+       beval st b = false -> (WHILE b DO c1 END) / st || st
+  | E_WhileLoop : forall (st st' st'': state) (c1 : com) (b : bexp),
+       beval st b = true -> 
+       c1 / st || st' ->
+       (WHILE b DO c1 END) / st' || st'' -> 
+       (WHILE b DO c1 END) / st || st''
+  where "c1 '/' st '||' st'" := (ceval c1 st st').
+
+Example ceval_example1 :
+  ( X ::= ANum 2 ;
+    IFB BLe (AId X) (ANum 1)
+      THEN Y ::= ANum 3
+      ELSE Z ::= ANum 4
+    FI ) / empty_state || (update (update empty_state X 2) Z 4).
+  apply E_Seq with (st' := (update empty_state X 2)).
+  apply E_Ass.
+  reflexivity.
+  
+  apply E_IfFalse.
+  reflexivity.
+  apply E_Ass.
+  reflexivity.
+Qed.
+
