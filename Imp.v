@@ -475,3 +475,152 @@ Example ceval_example1 :
   reflexivity.
 Qed.
 
+
+Tactic Notation "ceval_cases" tactic(first) ident(c) :=
+  first;
+  [ Case_aux c "E_Skip" | Case_aux c "E_Ass" | Case_aux c "E_Seq"
+  | Case_aux c "E_IfTrue" | Case_aux c "E_IfFalse"
+  | Case_aux c "E_WhileEnd" | Case_aux c "E_WhileLoop" ].
+
+
+Theorem ceval_deterministic :  forall c st st1 st2 ,
+  c / st || st1 ->
+  c / st || st2 ->
+  st1 = st2.
+  intros c st st1 st2.
+  intros E1.
+  generalize dependent st2.
+  induction E1.
+    intros. inversion H; reflexivity.
+    intros. inversion H0. subst. reflexivity.
+    intros st2. intros H.
+    inversion H.
+    subst.
+    apply IHE1_1 in H2.
+    rewrite <- H2 in H5.
+    apply IHE1_2 in H5.
+    subst. reflexivity.
+    intros.
+    inversion H0.
+    apply IHE1 in H7.
+    
+    assumption.
+    rewrite H in H6.
+    inversion H6.
+    
+    intros.
+    inversion H0.
+    rewrite H in H6.
+    inversion H6.
+    apply IHE1 in H7.
+    assumption.
+    intros.
+    inversion H0.
+    reflexivity.
+    rewrite H in H3.
+    inversion H3.
+    intros.
+    inversion H0.
+    subst.
+    rewrite H in H5.
+    inversion H5.
+    apply IHE1_1 in H4.
+    rewrite <- H4 in H7.
+    apply IHE1_2 in H7.
+    assumption.
+Qed.
+
+
+Print fact_body. Print fact_loop. Print fact_com.
+
+
+Fixpoint real_fact (n:nat) : nat :=
+  match n with
+  | O => 1
+  | S n' => n * (real_fact n')
+  end.
+
+Definition fact_invariant (x : nat) (st : state) :=
+  (st Y) * (real_fact (st Z)) = real_fact x.
+
+Theorem fact_body_preserves_invariant : forall x st st',
+   fact_invariant x st ->
+   (st Z) <> 0 ->
+   fact_body / st || st' ->
+   fact_invariant x st'.
+  unfold fact_invariant, fact_body.
+  intros x st st' Hm HZnz He.
+  inversion He. subst. clear He.
+  inversion H1. subst. clear H1.
+  inversion H4. subst. clear H4.
+  simpl.
+  unfold update. simpl.
+   rewrite <- Hm.
+   destruct (st Z). apply ex_falso_quodlibet. apply HZnz. reflexivity.
+   replace (S n - 1) with n by omega.
+   rewrite <- mult_assoc.
+   simpl. reflexivity.
+Qed.
+
+Theorem fact_loop_preserves_invariant : forall st st' x,
+   fact_invariant x st ->
+   fact_loop / st || st' ->
+   fact_invariant x st'.
+  intros st st' x H Hce.
+  remember fact_loop as c.
+  induction Hce; inversion Heqc.
+  assumption.
+  assert (fact_invariant x st').
+  apply fact_body_preserves_invariant with st.
+  assumption.
+  subst.
+  simpl in H0.
+  destruct (st Z).
+  simpl in H0.
+  inversion H0.
+  omega.
+  subst.
+  assumption.
+  apply IHHce2.
+  assumption.
+  assumption.
+  Qed.
+
+
+Theorem guard_false_after_loop: forall b c st st',
+     (WHILE b DO c END) / st || st' ->
+     beval st' b = false.
+  intros b c st st' Hce.
+  remember (WHILE b DO c END) as cloop.
+  induction Hce; inversion Heqcloop.
+  subst. assumption. apply IHHce2. assumption.
+Qed.
+
+Theorem fact_com_correct : forall st st' x,
+   st X = x ->
+   fact_com / st || st' ->
+   (st' Y) = real_fact x.
+  intros st st' x  Hx Hce.
+  unfold fact_com  in Hce.
+  inversion Hce. subst. clear Hce.
+  inversion H1. subst. clear H1.
+  inversion H4. subst. clear H4. 
+  inversion H1. subst. clear H1.
+  rename st' into st''.
+  simpl in H5.
+  remember (update (update st Z (st X)) Y 1) as st'.
+  assert (fact_invariant (st X)  st').
+  subst. unfold fact_invariant, update. simpl. omega.
+  assert (fact_invariant (st X) st'').
+  apply fact_loop_preserves_invariant with st'.
+  assumption. assumption.
+  unfold fact_invariant in H0.
+  apply guard_false_after_loop in H5.
+  simpl in H5.
+  destruct (st'' Z).
+  simpl in H0.
+  omega.
+  simpl in H5.
+  inversion H5.
+
+Qed.
