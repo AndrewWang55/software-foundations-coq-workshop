@@ -534,6 +534,21 @@ Qed.
 Print fact_body. Print fact_loop. Print fact_com.
 
 
+Theorem loop_doesnt_stop : forall s,
+  ~ exists s', loop / s || s'.
+  intro s.
+  intro contra.
+  unfold loop in contra.
+  inversion contra.
+  remember (WHILE BTrue DO SKIP END) as loop.
+  induction H; try (inversion Heqloop).
+  subst. inversion H.
+  subst.
+  apply IHceval2. reflexivity.
+  exists st''.
+  apply H1.
+Qed.  
+
 Fixpoint real_fact (n:nat) : nat :=
   match n with
   | O => 1
@@ -622,5 +637,216 @@ Theorem fact_com_correct : forall st st' x,
   omega.
   simpl in H5.
   inversion H5.
-
 Qed.
+
+Inductive  instr : Set :=
+  | SPush : nat -> instr
+  | SLoad : id -> instr
+  | SPlus : instr
+  | SMinus : instr
+  | SMult : instr.
+
+
+(*
+Fixpoint s_execute' (st : state) (stack : list nat) (prog : list instr) : list nat :=
+  match prog with
+    | [] => stack
+    | SPush n :: prog' => s_execute st (n :: stack) prog'
+    | SLoad var :: prog' => s_execute st ((st var) :: stack) prog'
+    | SPlus :: prog' => match stack with
+                          | n :: m :: stack' =>  s_execute st ((m + n) :: stack') prog'
+                          | _  =>  s_execute st stack prog'
+                        end
+    | SMinus :: prog' => match stack with
+                          | n :: m :: stack' =>  s_execute st ((m - n) :: stack') prog'
+                          | _  =>  s_execute st stack prog'
+                        end
+    | SMult :: prog' => match stack with
+                          | n :: m :: stack' =>  s_execute st ((m * n) :: stack') prog'
+                          | _  =>  s_execute st stack prog'
+                        end
+  end.
+*)
+
+Fixpoint s_execute (st : state) (stack : list nat)
+                   (prog : list instr)
+                 : list nat :=
+let newstack := 
+  match prog with
+    | [] => stack
+    | (SPush n)::_ => n::stack
+    | (SLoad id)::_ => (st id)::stack
+    | SPlus::_  => match stack with
+                        | n::(m::rest) => (m+n)::rest
+                        | _ => stack
+                      end
+    | SMinus::_  => match stack with
+                         | n::m::rest => (m-n)::rest
+                         | _ => stack
+                       end
+    | SMult::_  => match stack with
+                        | n::m::rest => (m*n)::rest
+                        | _ => stack
+                      end
+  end in
+  match prog with
+    | [] => stack
+    | instr::rest => s_execute st newstack rest
+  end.
+
+Example s_execute1 :
+     s_execute empty_state []
+       [SPush 5, SPush 3, SPush 1, SMinus] = [2,  5].
+reflexivity.
+Qed.
+
+Example s_execute2 :
+     s_execute (update empty_state X 3) [3, 4]
+       [SPush 4, SLoad X, SMult, SPlus]
+   = [15,  4].
+reflexivity.
+Qed.
+
+Fixpoint s_compile (e : aexp) : list instr :=
+  match e with
+    | ANum n => [ SPush n ]
+    | AId ident => [ SLoad ident ]
+    | APlus e1 e2 => (s_compile e1) ++ (s_compile e2) ++ [ SPlus ]
+    | AMinus e1 e2 => (s_compile e1) ++ (s_compile e2) ++ [ SMinus ]
+    | AMult e1 e2 => (s_compile e1) ++ (s_compile e2) ++ [ SMult ]
+  end.
+
+
+Lemma s_execute_app : forall st p1 p2 stack,
+  s_execute st stack (p1 ++ p2) = s_execute st (s_execute st stack p1) p2.
+  intros st p1.
+  induction p1.
+  intros; reflexivity.
+  intros.
+  simpl.
+  apply IHp1.
+Qed. 
+
+
+Theorem s_compile_correct_gen : forall (e : aexp) (st : state) (stack : list nat),
+   s_execute st stack (s_compile e) = aeval st e :: stack.
+  intros e st.
+  induction e; try (intros; reflexivity);
+  try (
+  intros;
+  simpl;
+  rewrite s_execute_app;
+  rewrite s_execute_app;
+  rewrite IHe1;
+  rewrite IHe2;
+  reflexivity
+  ).
+Qed.
+
+Theorem s_compile_correct : forall (e : aexp) (st : state),
+   s_execute st [] (s_compile e) = [aeval st e].
+  intros.
+  apply s_compile_correct_gen.
+Qed.
+
+Module BreakImp.
+  
+Inductive com : Type :=
+  | CSkip : com
+  | CBreak : com
+  | CAss : id -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com.
+
+
+
+Notation "'SKIP'" :=
+  CSkip.
+Notation "'BREAK'" :=
+  CBreak.
+Notation "x '::=' a" :=
+  (CAss x a) (at level 60).
+Notation "c1 ; c2" :=
+  (CSeq c1 c2) (at level 80, right associativity).
+Notation "'WHILE' b 'DO' c 'END'" :=
+  (CWhile b c) (at level 80, right associativity).
+Notation "'IFB' c1 'THEN' c2 'ELSE' c3 'FI'" :=
+  (CIf c1 c2 c3) (at level 80, right associativity).
+
+
+Inductive status : Type :=
+  | SContinue : status
+  | SBreak : status.
+
+Reserved Notation "c1 '/' st '||' s '/' st'"
+                  (at level 40, st, s at level 39).
+
+Inductive ceval : com -> state -> status -> state -> Prop :=
+  | E_Skip : forall (st : state),
+      SKIP / st || SContinue / st
+  | E_Break : forall (st : state),
+      BREAK / st || SBreak / st
+  | E_Ass : forall (st : state) (a : aexp) (n : nat) (X : id),
+       aeval st a = n ->  (X ::= a) / st || SContinue / (update st X n)
+  | E_Seq_SBreak : forall (c1 c2 : com) (st st' : state),
+       (c1 / st || SBreak / st') -> (c1 ; c2) / st || SBreak / st'
+  | E_Seq_SCont : forall (c1 c2 : com) (st st' st'': state) (s : status),
+       (c1 / st || SContinue / st') -> (c2 / st' || s / st'') -> (c1 ; c2) / st || s / st''
+         
+  | E_IfTrue : forall (st st': state) (s : status) (c1 c2 : com) (b : bexp),
+       beval st b = true -> c1 / st || s / st' -> (IFB b THEN c1 ELSE c2 FI) / st || s / st'
+  | E_IfFalse : forall (st st': state) (s : status) (c1 c2 : com) (b : bexp),
+       beval st b = false -> c2 / st || s / st' -> (IFB b THEN c1 ELSE c2 FI) / st || s / st'
+  | E_WhileEnd : forall (st : state) (c1 : com) (b : bexp),
+       beval st b = false -> (WHILE b DO c1 END) / st || SContinue / st
+  | E_WhileLoop_SBreak : forall (st st' : state) (c1 : com) (b : bexp),
+       beval st b = true -> 
+       c1 / st || SBreak / st' ->
+       (WHILE b DO c1 END) / st || SContinue / st'
+  | E_WhileLoop_SCont : forall (st st' st'': state) (s:status) (c1 : com) (b : bexp),
+       beval st b = true -> 
+       c1 / st || SContinue / st' ->
+       (WHILE b DO c1 END) / st' || SContinue / st'' ->
+       (WHILE b DO c1 END) / st || SContinue / st''
+  where "c1 '/' st '||' s / st'" := (ceval c1 st s st').
+
+Theorem break_ignore : forall c st st' s,
+     (BREAK; c) / st || s / st' ->
+     st = st'.
+  intros.
+  inversion H.
+  subst.
+  clear H.
+  inversion H5; reflexivity.
+  inversion H2.
+  Qed.
+
+  Theorem while_continue : forall b c st st' s,
+  (WHILE b DO c END) / st || s / st' ->
+  s = SContinue.
+    intros.
+    inversion H; try reflexivity.
+  Qed.
+  
+Theorem while_stops_on_break : forall b c st st',
+  beval st b = true ->
+  c / st || SBreak / st' ->
+  (WHILE b DO c END) / st || SContinue / st'.
+  intros.
+  apply E_WhileLoop_SBreak; assumption.
+Qed.
+
+Theorem while_break_true : forall b c st st',
+  (WHILE b DO c END) / st  || SContinue / st' ->
+  beval st' b = true ->
+  exists (st'' : state), c / st'' || SBreak / st'.
+  intros.
+  remember (WHILE b DO c END) as loop.
+  induction H; try (inversion  Heqloop); try subst.
+  rewrite H in H0; inversion H0.
+  exists st; assumption.
+  apply IHceval2; assumption.
+Qed.
+
+End BreakImp.
