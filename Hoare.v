@@ -87,3 +87,81 @@ Theorem ex_loop_quodlibet : forall P Q, hoare_triple P loop Q.
   exists st'.
   assumption.
 Qed. 
+
+Theorem hoare_post_true : forall (P Q : Assertion) c,
+  (forall st, Q st) ->
+  {{P}} c {{Q}}.
+  intros P Q c H.
+  unfold hoare_triple.
+  intros st st' Hc HP.
+  apply H.
+Qed.
+
+Theorem hoare_pre_false : forall (P Q : Assertion) c,
+  (forall st, ~(P st)) ->
+  {{P}} c {{Q}}.
+  intros P Q c H st st' HC HP.
+  apply H in HP. contradiction.
+Qed.
+
+Definition assn_sub X a P : Assertion :=
+  fun (st : state) =>
+    P (update st X (aeval st a)).
+
+Notation "P [ X |-> a ]" := (assn_sub X a P) (at level 10).
+
+
+Theorem hoare_asgn : forall Q X a,
+  {{Q [X |-> a]}} (X ::= a) {{Q}}.
+  intros Q X a.
+  unfold hoare_triple.
+  intros st st' Hc HQ.
+  inversion Hc.
+  unfold assn_sub in HQ.
+  subst.
+  assumption.
+Qed.
+
+
+
+Example assn_sub_example :
+  {{(fun st => st X = 3) [X |-> ANum 3]}}
+  (X ::= (ANum 3))
+  {{fun st => st X = 3}}.
+Proof.
+  apply hoare_asgn.
+Qed.  
+
+Theorem asgn_example_1 :
+{{ (fun st => (st X) <= 5)  [ X |-> (APlus (AId X) (ANum 1)) ] }}
+X ::=  (APlus (AId X) (ANum 1))
+{{ (fun st => (st X) <= 5)  }}.
+  apply hoare_asgn.
+Qed.
+
+
+Theorem hoare_consequence_pre : forall (P P' Q : Assertion) c,
+  {{P'}} c {{Q}} ->
+  P ->> P' ->
+  {{P}} c {{Q}}.
+Proof.
+  intros P P' Q c HP' HPP'.
+  intros st st' Hc HP.
+  unfold hoare_triple in HP'.
+  apply HP' with (st := st).
+  assumption.
+  apply HPP'.
+  assumption.
+
+Qed.
+
+Theorem hoare_consequence_post : forall (P Q Q' : Assertion) c,
+  {{P}} c {{Q'}} ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+  intros P Q Q' H HQ' HQ'Q.
+  intros z w Hc HP.
+  unfold hoare_triple in HQ'.
+  apply HQ'Q.
+  apply HQ' with (st := z); assumption.
+Qed.
