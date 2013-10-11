@@ -165,3 +165,97 @@ Theorem hoare_consequence_post : forall (P Q Q' : Assertion) c,
   apply HQ'Q.
   apply HQ' with (st := z); assumption.
 Qed.
+
+
+Example hoare_asgn_example1 :
+  {{fun st => True}} (X ::= (ANum 1)) {{fun st => st X = 1}}.
+Proof.
+  apply hoare_consequence_pre with ((fun st => st X = 1) [ X |-> ANum 1 ]).
+  apply hoare_asgn.
+  intros st H.
+  reflexivity.
+Qed.  
+
+ Theorem hoare_consequence : forall (P P' Q Q' : Assertion) c,
+  {{P'}} c {{Q'}} ->
+  P ->> P' ->
+  Q' ->> Q ->
+  {{P}} c {{Q}}.
+  intros P P' Q Q' c HP'Q' HPP' HQ'Q.
+  apply hoare_consequence_pre with P'; try assumption.
+  apply hoare_consequence_post with Q'; try assumption.
+Qed.
+
+
+Goal forall a b c, a + (b + c) = c + (a + b).
+  intros a b c.
+  eapply eq_trans.
+  apply plus_assoc.
+  apply plus_comm.
+Qed.
+
+
+Example hoare_asgn_example1' :
+  {{fun st => True}}
+  (X ::= (ANum 1))
+  {{fun st => st X = 1}}.
+Proof.
+  eapply hoare_consequence_pre.
+  apply hoare_asgn.
+  intros st H; reflexivity.
+Qed.
+
+
+Definition silly1f (P : nat -> nat -> Prop) (Q : nat -> Prop)
+  (H1 : forall x y : nat, P x y)
+  (H2 : forall x y : nat, P x y -> Q x) : Q 42 :=
+  H2 42 100 (H1 42 100).
+
+Lemma silly1 : forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (forall x y : nat, P x y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+Proof.
+  intros P Q HP HPQ.
+  eapply HPQ.
+  apply HP.
+  Abort.
+
+Lemma silly2 :
+  forall (P : nat -> nat -> Prop) (Q : nat -> Prop),
+  (exists y, P 42 y) ->
+  (forall x y : nat, P x y -> Q x) ->
+  Q 42.
+  
+  intros P Q HE HPQ.
+  inversion HE as [z Hz].
+  eapply HPQ.
+  apply Hz.
+Qed.
+
+
+
+(* {{ X + 1 <= 5 }}  X ::= X + 1  {{ X <= 5 }} *)
+
+Theorem hoare_asgn_examples_2_1:
+  {{ fun st => st X + 1 <= 5 }} X ::= APlus (AId X) (ANum 1) {{ fun st => st X <= 5 }}.
+  eapply hoare_consequence_pre.
+  apply hoare_asgn.
+  intros st H.
+  unfold assn_sub.
+  simpl.
+  unfold update.
+  simpl.
+  assumption.
+Qed.
+
+
+
+Theorem hoare_skip : forall P,
+     {{P}} SKIP {{P}}.  
+  intros P st st' Hc HP.
+  inversion Hc.
+  subst.
+  assumption.
+Qed.
+
