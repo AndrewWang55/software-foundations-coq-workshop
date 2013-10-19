@@ -259,3 +259,27 @@ Theorem hoare_skip : forall P,
   assumption.
 Qed.
 
+
+Theorem hoare_seq: forall P R Q c1 c2,
+  {{ Q }} c2 {{ R }} ->
+  {{ P }} c1 {{ Q }} ->
+  {{ P }} c1;c2 {{ R }}.
+  intros P R Q c1 c2 HQR HPQ.
+  intros st st' Hc HP.
+  inversion Hc.
+  subst.
+  eapply HQR; try  eapply HPQ; eassumption.
+Qed.
+
+Example hoare_asgn_example3 : forall a n,
+  {{fun st => aeval st a = n}}
+  (X ::= a; SKIP)
+  {{fun st => st X = n}}.
+intros a n.
+eapply hoare_seq.
+apply hoare_skip.
+eapply hoare_consequence_pre.
+apply hoare_asgn.
+
+intros st H; subst; reflexivity.
+Qed.
